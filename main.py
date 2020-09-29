@@ -1,10 +1,21 @@
 from dfa.dfa import DFA
-from parser import parser
+from parser import parser as scr_parser
+import argparse
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Tool to project Scribble protocols with mixed choice"
+    )
+    parser.add_argument(
+        "file",
+        metavar="file",
+        type=str,
+        help="path to the file where the scribble protocols are defined",
+    )
+    args = parser.parse_args()
     try:
-        protocols = parser.parse_file("examples/examples.scr")
+        protocols = scr_parser.parse_file(args.file)
         for proto_name, protocol in protocols.items():
             role = None
             try:
