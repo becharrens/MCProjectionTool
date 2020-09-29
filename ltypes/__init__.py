@@ -1,0 +1,2 @@
+HASH_SIZE = 1 << 384
+PRIME = 23

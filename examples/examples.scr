@@ -1,0 +1,105 @@
+global protocol Test1(role a, role b, role c) {
+    rec X {
+        choice {
+            a->b:U; continue X
+        } or {
+            a->c:U; continue X
+        }
+    }
+}
+
+global protocol Controller(role input1, role input2, role processing, role routing, role output1, role output2) {
+    rec X1 {
+        choice {
+            input1 -> processing: packet;
+            rec X2 {
+                processing -> routing: packet;
+                choice {
+                    input1 -> processing:packet;
+                    choice {
+                        routing -> output1: packet;
+                        continue X2
+                    } or {
+                        routing -> output2: packet;
+                        continue X2
+                    }
+                } or {
+                    input2 -> processing: packet;
+                    choice {
+                        routing -> output1: packet;
+                        continue X2
+                    } or {
+                        routing -> output2: packet;
+                        continue X2
+                    }
+                } or {
+                    routing -> output1: packet;
+                    continue X1
+                } or {
+                    routing -> output2: packet;
+                    continue X1
+                }
+            }
+        } or {
+            input2 -> processing: packet;
+            rec X2 {
+                processing -> routing: packet;
+                choice {
+                    input1 -> processing:packet;
+                    choice {
+                        routing -> output1: packet;
+                        continue X2
+                    } or {
+                        routing -> output2: packet;
+                        continue X2
+                    }
+                } or {
+                    input2 -> processing: packet;
+                    choice {
+                        routing -> output1: packet;
+                        continue X2
+                    } or {
+                        routing -> output2: packet;
+                        continue X2
+                    }
+                } or {
+                    routing -> output1: packet;
+                    continue X1
+                } or {
+                    routing -> output2: packet;
+                    continue X1
+                }
+            }
+        }
+    }
+}
+
+global protocol Invalid(role a, role b, role c) {
+    choice {
+        a->b:U; a->c:U; end
+    } or {
+        a->c:U; c->a:U; b->a:U; end
+    } or {
+        c->a:U; c->b:U; end
+    }
+}
+
+global protocol LeaderElection(role a, role b, role c, role env) {
+    choice {
+        a->b:leader; a->c:leader; a->env:elect; end
+    } or {
+        b->a:leader; b->c:leader; b->env:elect; end
+    } or {
+        c->a:leader; c->b:leader; c->env:elect; end
+    }
+}
+
+global protocol Recursion(role a, role b) {
+    rec X {
+        choice {
+            a->b:U; end
+        } or {
+            continue X
+        }
+    }
+}
