@@ -103,3 +103,18 @@ global protocol Recursion(role a, role b) {
         }
     }
 }
+
+global protocol DoubleRecursion(role a, role b, role c, role d, role e) {
+    rec t1 {
+        a->b:nat;
+        rec t2 {
+            choice {
+                c->e:nat; continue t1
+            } or {
+                d->e:nat; continue t1
+            } or {
+                e->d:nat; continue t2
+            }
+        }
+    }
+}
