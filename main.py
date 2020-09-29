@@ -23,6 +23,13 @@ def main():
                 print(str(protocol.gtype))
                 projections = protocol.gtype.project(set(protocol.roles))
                 print("Preliminary projections")
+                projections = {
+                    role: ltype.normalise() for role, ltype in projections.items()
+                }
+                # p = {}
+                # for role in protocol.roles:
+                #     p[role] = projections[role].normalise()
+                # projections = p
                 for role, ltype in projections.items():
                     print(f"{role}@{protocol.protocol}:\n")
                     print(str(ltype), "\n\n")

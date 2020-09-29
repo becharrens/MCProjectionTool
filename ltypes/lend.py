@@ -32,6 +32,12 @@ class LEnd(LType):
     def has_rec_var(self, tvar: str) -> bool:
         return False
 
+    def rename_tvars(self, tvars: Set[str], new_tvar: str, ltype: LType):
+        pass
+
+    def flatten_recursion(self):
+        pass
+
     def __str__(self) -> str:
         return self.to_string("")
 

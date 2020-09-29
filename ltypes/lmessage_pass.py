@@ -41,6 +41,12 @@ class LMessagePass(LType):
     def has_rec_var(self, tvar: str) -> bool:
         return self.cont.has_rec_var(tvar)
 
+    def rename_tvars(self, tvars: Set[str], new_tvar, ltype) -> Set[str]:
+        self.cont.rename_tvars(tvars, new_tvar, ltype)
+
+    def flatten_recursion(self):
+        self.cont.flatten_recursion()
+
     def __str__(self) -> str:
         return self.to_string("")
 

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 from lark import Lark, Transformer
 
@@ -8,13 +8,14 @@ from gtypes.gend import GEnd
 from gtypes.gmessage_pass import GMessagePass
 from gtypes.grec_var import GRecVar
 from gtypes.grecursion import GRecursion
+from gtypes.gtype import GType
 
 
 class Protocol:
-    def __init__(self, protocol, roles, gtype) -> None:
+    def __init__(self, protocol: str, roles: List[str], gtype: GType) -> None:
         self.protocol = protocol
         self.roles = roles
-        self.gtype = gtype.normalise()
+        self.gtype: GType = gtype.normalise()
 
     def __str__(self) -> str:
         tab = "\t"

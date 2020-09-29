@@ -40,3 +40,11 @@ class LType(ABC):
     @abstractmethod
     def has_rec_var(self, tvar: str) -> bool:
         pass
+
+    @abstractmethod
+    def rename_tvars(self, tvars: Set[str], new_tvar, ltype):
+        pass
+
+    def flatten_recursion(self):
+        """Collapses consecutive recursive variables into a single one"""
+        pass

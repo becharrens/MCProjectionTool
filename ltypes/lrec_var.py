@@ -53,6 +53,14 @@ class LRecVar(LType):
     def has_rec_var(self, tvar: str) -> bool:
         return self.tvar == tvar
 
+    def rename_tvars(self, tvars: Set[str], new_tvar: str, ltype: LType):
+        if self.tvar in tvars:
+            self.ltype = ltype
+            self.tvar = new_tvar
+
+    def flatten_recursion(self):
+        pass
+
     def __str__(self) -> str:
         return self.to_string("")
 

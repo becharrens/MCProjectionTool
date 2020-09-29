@@ -272,6 +272,14 @@ class LIDChoice(LType):
                 return True
         return False
 
+    def rename_tvars(self, tvars: Set[str], new_tvar: str, new_ltype: LType):
+        for ltype in self.branches:
+            ltype.rename_tvars(tvars, new_tvar, new_ltype)
+
+    def flatten_recursion(self):
+        for ltype in self.branches:
+            ltype.flatten_recursion()
+
     def __str__(self) -> str:
         return self.to_string("")
 
@@ -350,6 +358,14 @@ class LUnmergedChoice(LType):
                 return True
         return False
 
+    def rename_tvars(self, tvars: Set[str], new_tvar: str, new_ltype: LType):
+        for ltype in self.choices:
+            ltype.rename_tvars(tvars, new_tvar, new_ltype)
+
+    def flatten_recursion(self):
+        for ltype in self.choices:
+            ltype.flatten_recursion()
+
     def __str__(self) -> str:
         return self.to_string("")
 
@@ -402,7 +418,7 @@ class LChoice(LType):
         new_indent = indent + "\t"
         ltypes = [ltype.to_string(new_indent) for ltype in self.branches]
         new_line = "\n"
-        return f"{indent}choice {{\n{f'{new_line}{indent}}} or {{{new_line}'.join(ltypes)}\n{indent}}}\n"
+        return f"{indent}choice {{\n{f'{new_line}{indent}}} or {{{new_line}'.join(ltypes)}\n{indent}}}"
 
     def normalise(self) -> LType:
         self.branches = [branch.normalise() for branch in self.branches]
@@ -413,6 +429,14 @@ class LChoice(LType):
             if ltype.has_rec_var(tvar):
                 return True
         return False
+
+    def rename_tvars(self, tvars: Set[str], new_tvar: str, new_ltype: LType):
+        for ltype in self.branches:
+            ltype.rename_tvars(tvars, new_tvar, new_ltype)
+
+    def flatten_recursion(self):
+        for ltype in self.branches:
+            ltype.flatten_recursion()
 
     def __str__(self) -> str:
         return self.to_string("")

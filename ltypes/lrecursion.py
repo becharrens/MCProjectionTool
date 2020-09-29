@@ -1,4 +1,4 @@
-from typing import Set, Tuple, Dict
+from typing import Set, Tuple, Dict, Type, cast
 
 import ltypes
 from gtypes.gtype import GType
@@ -39,10 +39,23 @@ class LRecursion(LType):
         return f"{indent}rec {self.tvar} {{\n{self.ltype.to_string(next_indent)}\n{indent}}}"
 
     def normalise(self) -> LType:
-        self.ltype = self.ltype.normalise()
         if self.ltype.has_rec_var(self.tvar):
+            self.flatten_recursion()
+            self.ltype = self.ltype.normalise()
             return self
-        return self.ltype
+        return self.ltype.normalise()
+
+    def rename_tvars(self, tvars: Set[str], new_tvar, ltype) -> Set[str]:
+        return self.ltype.rename_tvars(tvars, new_tvar, ltype)
+
+    def flatten_recursion(self):
+        tvars = set()
+        while isinstance(self.ltype, LRecursion):
+            ltype: LRecursion = cast(LRecursion, self.ltype)
+            tvars.add(ltype.tvar)
+            self.ltype = ltype.ltype
+        if len(tvars) > 0:
+            self.ltype.rename_tvars(tvars, self.tvar, self)
 
     def has_rec_var(self, tvar: str) -> bool:
         return self.ltype.has_rec_var(tvar)
