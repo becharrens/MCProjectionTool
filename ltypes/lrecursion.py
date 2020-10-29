@@ -24,7 +24,7 @@ class LRecursion(LType):
         self.ltype.set_rec_ltype(tvar, gtype)
 
     def first_participants(self, tvars):
-        return self.ltype.first_actions(tvars)
+        return self.ltype.first_participants(tvars)
 
     def first_actions(self, tvars: Set[str]) -> Set[LAction]:
         return self.ltype.first_actions(tvars)
