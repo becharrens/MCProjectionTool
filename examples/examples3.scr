@@ -1,0 +1,20 @@
+
+global protocol Test(role a,role b, role c) {
+    /*
+    Invalid: 'a' can think b1 was chosen even if b2 starts
+    executing
+    */
+    choice {
+        a->b:U;
+        b->c:U;
+        c->a:U;
+        end
+    } or {
+        b->c:U;
+        c->a:U;
+        a->b:U;
+        end
+    }
+}
+
+// a->c + a->b

@@ -1,4 +1,4 @@
-from typing import Set, Tuple, Dict, Type, cast
+from typing import Set, Tuple, Dict, Type, cast, Optional, Any
 
 import ltypes
 from gtypes.gtype import GType
@@ -59,6 +59,26 @@ class LRecursion(LType):
 
     def has_rec_var(self, tvar: str) -> bool:
         return self.ltype.has_rec_var(tvar)
+
+    def get_next_state(self, laction: LAction, tvars: Set[str]) -> Optional[Any]:
+        return self.ltype.get_next_state(laction, tvars)
+
+    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
+        if self.tvar not in tvars:
+            tvars.add(self.tvar)
+        return self.ltype.is_first_interaction_with_role(laction, tvars)
+
+    def interacts_with_role_before_action(
+        self, role: str, laction: LAction, tvars: Set[str]
+    ) -> bool:
+        if self.tvar not in tvars:
+            tvars.add(self.tvar)
+        return self.ltype.interacts_with_role_before_action(laction, tvars)
+
+    def check_valid_projection(self, tvars: Set[str]) -> None:
+        # TODO: is this correct?
+        # tvars.add(self.tvar)
+        self.ltype.check_valid_projection(tvars)
 
     def __str__(self) -> str:
         return self.to_string("")

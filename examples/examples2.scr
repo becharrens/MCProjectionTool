@@ -1,0 +1,40 @@
+
+global protocol MChoice1(role a, role b, role c, role d, role e, role f, role g) {
+    choice {
+        a->b:x;
+        end
+    }
+}
+
+global protocol Invalid1(role a, role b, role c, role d) {
+    choice {
+        a->b:u;
+        a->c:u;
+        c->b:u;
+        a->d:u;
+        c->d:u;
+        end
+    } or {
+        b->c:u;
+        c->d:u;
+        b->a:u;
+        d->b:u;
+        end
+    }
+}
+
+global protocol Invalid2(role a, role b, role c, role d) {
+    choice {
+        a->b:u;
+        c->b:u;
+        a->d:u;
+        c->d:u;
+        end
+    } or {
+        b->c:u;
+        c->d:u;
+        b->a:u;
+        d->b:u;
+        end
+    }
+}

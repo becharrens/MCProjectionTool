@@ -34,6 +34,9 @@ def main():
                     print(f"{role}@{protocol.protocol}:\n")
                     print(str(ltype), "\n\n")
 
+                print("Checking projections...\n\n")
+                for ltype in projections.values():
+                    ltype.check_valid_projection(set())
                 print("Normalised projections")
                 for role, ltype in projections.items():
                     dfa = DFA(ltype)
@@ -44,7 +47,7 @@ def main():
             except Exception as e:
                 name = "@".join([x for x in [role, proto_name] if x is not None])
                 print("!!!!!!!!!!!!!!!!!!!!!!!!")
-                print(f"Error: {name}:", e)
+                print(f"Error: {name}:", repr(e))
                 print("!!!!!!!!!!!!!!!!!!!!!!!!")
                 print("\n=============================>\n")
 

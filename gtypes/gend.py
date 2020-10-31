@@ -1,6 +1,8 @@
 from typing import Set, Dict
 
+from gtypes.gaction import GAction
 from gtypes.gtype import GType
+from ltypes.laction import LAction
 from ltypes.lend import LEnd
 from ltypes.ltype import LType
 
@@ -26,6 +28,10 @@ class GEnd(GType):
 
     def has_rec_var(self, tvar: str) -> bool:
         return False
+
+    def build_mapping(self, mapping: Dict[str, Dict[LAction, Set[GAction]]], role_mapping: Dict[str, GAction],
+                      tvars: Set[str]) -> None:
+        pass
 
     def __str__(self) -> str:
         return self.to_string("")

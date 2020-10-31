@@ -3,8 +3,24 @@ from typing import Set, Dict
 import gtypes
 from gtypes.gaction import GAction
 from gtypes.gtype import GType
+from ltypes.laction import LAction
 from ltypes.ltype import LType
 from ltypes.lmessage_pass import LMessagePass
+
+
+def update_mapping(
+    new_role: str,
+    role_action: GAction,
+    fst_gaction: GAction,
+    mapping: Dict[str, Dict[LAction, Set[GAction]]],
+    role_mapping: Dict[str, GAction],
+):
+    # a->b --> b->c
+    role_mapping[new_role] = fst_gaction
+    r_mapping = mapping.setdefault(new_role, {})
+    gaction_mapping = r_mapping.setdefault(role_action.project(new_role), set())
+    gaction_mapping.add(fst_gaction)
+    # a->b; b->c + b->a; b->c
 
 
 class GMessagePass(GType):
@@ -41,6 +57,38 @@ class GMessagePass(GType):
 
     def has_rec_var(self, tvar: str) -> bool:
         return self.cont.has_rec_var(tvar)
+
+    def build_mapping(
+        self,
+        mapping: Dict[str, Dict[LAction, Set[GAction]]],
+        role_mapping: Dict[str, GAction],
+        tvars: Set[str],
+    ) -> None:
+        a, b = self.action.participants
+        update_a = a not in role_mapping
+        update_b = b not in role_mapping
+
+        if not (update_a or update_b):
+            self.cont.build_mapping(mapping, role_mapping, tvars)
+            return
+
+        if update_a and update_b:
+            fst_gaction = self.action
+            update_mapping(a, self.action, fst_gaction, mapping, role_mapping)
+            update_mapping(b, self.action, fst_gaction, mapping, role_mapping)
+            self.cont.build_mapping(mapping, role_mapping, tvars)
+            del role_mapping[a]
+            del role_mapping[b]
+        elif update_a:
+            fst_gaction = role_mapping[b]
+            update_mapping(a, self.action, fst_gaction, mapping, role_mapping)
+            self.cont.build_mapping(mapping, role_mapping, tvars)
+            del role_mapping[a]
+        else:
+            fst_gaction = role_mapping[a]
+            update_mapping(b, self.action, fst_gaction, mapping, role_mapping)
+            self.cont.build_mapping(mapping, role_mapping, tvars)
+            del role_mapping[b]
 
     def __str__(self) -> str:
         return self.to_string("")

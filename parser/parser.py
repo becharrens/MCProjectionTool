@@ -3,7 +3,7 @@ from typing import Dict, List
 from lark import Lark, Transformer
 
 from gtypes.gaction import GAction
-from gtypes.gchoice import GChoice
+from gtypes.gmchoice import GChoice
 from gtypes.gend import GEnd
 from gtypes.gmessage_pass import GMessagePass
 from gtypes.grec_var import GRecVar

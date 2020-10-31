@@ -5,6 +5,7 @@ from gtypes import HASH_SIZE
 from gtypes.gend import GEnd
 from gtypes.gaction import GAction
 from gtypes.gtype import GType
+from ltypes.laction import LAction
 from ltypes.ltype import LType
 from ltypes.lrec_var import LRecVar
 
@@ -43,6 +44,16 @@ class GRecVar(GType):
 
     def has_rec_var(self, tvar: str) -> bool:
         return self.tvar == tvar
+
+    def build_mapping(
+        self,
+        mapping: Dict[str, Dict[LAction, Set[GAction]]],
+        role_mapping: Dict[str, GAction],
+        tvars: Set[str],
+    ) -> None:
+        if self.tvar in tvars:
+            return
+        self.gtype.build_mapping(mapping, role_mapping, tvars.union({self.tvar}))
 
     def __str__(self) -> str:
         return self.to_string("")

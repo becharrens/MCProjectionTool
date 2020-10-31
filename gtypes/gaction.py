@@ -16,9 +16,19 @@ class GAction:
 
     def project(self, role):
         if role == self.participants[0]:
-            return LAction(self.participants[1], ActionType.send, self.payload)
+            return LAction(
+                self.participants[0],
+                self.participants[1],
+                ActionType.send,
+                self.payload,
+            )
         if role == self.participants[1]:
-            return LAction(self.participants[0], ActionType.recv, self.payload)
+            return LAction(
+                self.participants[1],
+                self.participants[0],
+                ActionType.recv,
+                self.payload,
+            )
         return None
 
     def __eq__(self, o: object) -> bool:

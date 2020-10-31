@@ -1,4 +1,4 @@
-from typing import Set, Dict, Tuple, Any
+from typing import Set, Dict, Tuple, Any, Optional
 
 from ltypes.laction import LAction
 from ltypes.ltype import LType
@@ -36,6 +36,20 @@ class LEnd(LType):
         pass
 
     def flatten_recursion(self):
+        pass
+
+    def get_next_state(self, laction: LAction, tvars: Set[str]) -> Optional[LType]:
+        return None
+
+    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
+        return False
+
+    def interacts_with_role_before_action(
+        self, role: str, laction: LAction, tvars: Set[str]
+    ) -> bool:
+        return True
+
+    def check_valid_projection(self, tvars) -> None:
         pass
 
     def __str__(self) -> str:

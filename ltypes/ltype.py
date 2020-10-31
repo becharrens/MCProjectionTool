@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Set, Dict, Tuple, Any
+from typing import Set, Dict, Tuple, Any, Optional
 
 from ltypes.laction import LAction
 
@@ -45,6 +45,26 @@ class LType(ABC):
     def rename_tvars(self, tvars: Set[str], new_tvar, ltype):
         pass
 
+    @abstractmethod
     def flatten_recursion(self):
         """Collapses consecutive recursive variables into a single one"""
+        pass
+
+    @abstractmethod
+    def get_next_state(self, laction: LAction, tvars: Set[str]) -> Optional[Any]:
+        pass
+
+    # TODO: remove
+    @abstractmethod
+    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
+        pass
+
+    @abstractmethod
+    def interacts_with_role_before_action(
+        self, role: str, laction: LAction, tvars: Set[str]
+    ) -> bool:
+        pass
+
+    @abstractmethod
+    def check_valid_projection(self, tvars: Set[str]) -> None:
         pass

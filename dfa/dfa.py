@@ -1,11 +1,14 @@
-from abc import ABC
 from collections import deque
 from typing import Set, Dict, Any, Iterable, List, Deque
 
-from ltypes import lchoice
+# from ltypes import lchoice
+from errors.errors import NotTraceEquivalent
+from ltypes import lmchoice
 from ltypes.laction import LAction
-from ltypes.lchoice import merge_next_states, LUnmergedChoice, LChoice
+
+# from ltypes.lchoice import merge_next_states, LUnmergedChoice, LChoice
 from ltypes.lend import LEnd
+from ltypes.lmchoice import LChoice
 from ltypes.lmessage_pass import LMessagePass
 from ltypes.lrec_var import LRecVar
 from ltypes.lrecursion import LRecursion
@@ -13,7 +16,28 @@ from ltypes.ltype import LType
 
 
 def hash_state(ltypes: List[LType]):
-    return lchoice.hash_ltype_list(ltypes, set())
+    return lmchoice.hash_ltype_list(ltypes, set())
+
+
+def merge_next_states(
+    next_states: List[Dict[LAction, Set[LType]]]
+) -> Dict[LAction, Set[LType]]:
+    new_next_states = None
+    for transitions in next_states:
+        if new_next_states is None:
+            new_next_states = transitions
+        else:
+            if len(transitions.keys()) != len(new_next_states.keys()):
+                raise NotTraceEquivalent(
+                    "All local types should have the same set of first actions"
+                )
+            for action in new_next_states:
+                if action not in transitions:
+                    raise NotTraceEquivalent(
+                        "All ltypes should have the same set of first actions"
+                    )
+                new_next_states[action] |= transitions[action]
+    return new_next_states
 
 
 class DFAState:

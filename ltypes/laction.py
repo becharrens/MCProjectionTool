@@ -7,6 +7,9 @@ class ActionType(Enum):
     send = 0
     recv = 1
 
+    def dual(self):
+        return ActionType(1 - self.value)
+
     def __str__(self):
         if self.value == 0:
             return "!"
@@ -14,13 +17,21 @@ class ActionType(Enum):
 
 
 class LAction:
-    def __init__(self, participant: str, action_type: ActionType, payload: str):
+    def __init__(
+        self, proj_role: str, participant: str, action_type: ActionType, payload: str
+    ):
         self.participant = participant
         self.payload = payload
         self.action_type = action_type
+        self.proj_role = proj_role
 
     def get_participant(self) -> str:
         return self.participant
+
+    def dual(self):
+        return LAction(
+            self.participant, self.proj_role, self.action_type.dual(), self.payload
+        )
 
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, LAction):

@@ -3,6 +3,7 @@ from typing import Set, Dict
 import gtypes
 from gtypes.gaction import GAction
 from gtypes.gtype import GType
+from ltypes.laction import LAction
 from ltypes.lrecursion import LRecursion
 from ltypes.ltype import LType
 
@@ -23,7 +24,7 @@ class GRecursion(GType):
         }
 
     def set_rec_gtype(self, tvar: str, gtype: GType) -> None:
-        assert tvar != self.tvar
+        assert tvar != self.tvar, "Duplicate TVar"
         self.gtype.set_rec_gtype(tvar, gtype)
 
     def first_actions(self, tvars: Set[str]) -> Set[GAction]:
@@ -46,6 +47,14 @@ class GRecursion(GType):
 
     def has_rec_var(self, tvar: str) -> bool:
         return self.gtype.has_rec_var(tvar)
+
+    def build_mapping(
+        self,
+        mapping: Dict[str, Dict[LAction, Set[GAction]]],
+        role_mapping: Dict[str, GAction],
+        tvars: Set[str],
+    ) -> None:
+        self.gtype.build_mapping(mapping, role_mapping, tvars)
 
     def __str__(self) -> str:
         return self.to_string("")

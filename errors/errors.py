@@ -16,11 +16,3 @@ class NotTraceEquivalent(Exception):
     cannot be trace equivalent"""
 
     pass
-
-
-class UnnormalisedGlobalType(Exception):
-    """Certain checks can only be made once a (global) type has been
-    normalised, so if you try to use it without normalising it, an
-    exception is thrown"""
-
-    pass

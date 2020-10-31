@@ -1,3 +1,4 @@
+
 global protocol Test1(role a, role b, role c) {
     rec X {
         choice {
@@ -74,7 +75,12 @@ global protocol Controller(role input1, role input2, role processing, role routi
     }
 }
 
+
 global protocol Invalid(role a, role b, role c) {
+    /*
+    - 'c' can confuse 1st and 2nd branches
+    - Also trace equivalence in 1st/2nd branches
+    */
     choice {
         a->b:U; a->c:U; end
     } or {
@@ -83,6 +89,7 @@ global protocol Invalid(role a, role b, role c) {
         c->a:U; c->b:U; end
     }
 }
+
 
 global protocol LeaderElection(role a, role b, role c, role env) {
     choice {
@@ -117,4 +124,81 @@ global protocol DoubleRecursion(role a, role b, role c, role d, role e) {
             }
         }
     }
+}
+
+global protocol Rec(role a, role b) {
+    rec X {
+        a->b:U; continue X
+    }
+}
+
+global protocol InvalidInternalChoice(role a, role b, role c, role d) {
+    choice {
+        a->b:U;
+        a->c:U;
+        a->d:U;
+        c->d:U;
+        end
+    } or {
+        b->a:U;
+        a->c:U;
+        a->d:U;
+        d->c:U;
+        end
+    }
+}
+
+global protocol KVStoreSeq(role a1, role a2, role b) {
+    rec X {
+        choice {
+            a1 -> b:lock;
+            rec Y1 {
+                choice {
+                    rec Z1 {
+                        choice {
+                            a1->b:get;
+                            a1->b:val;
+                            continue Z1
+                        } or {
+                            a1->b:barrier;
+                            continue Y1
+                        }
+                    }
+                } or {
+                    a1->b:set;
+                    continue Y1
+                } or {
+                    a1->b:unlock;
+                    continue X
+                }
+            }
+        } or {
+            a2 -> b:lock;
+            rec Y2 {
+                choice {
+                    rec Z2 {
+                        choice {
+                            a2->b:get;
+                            a2->b:val;
+                            continue Z2
+                        } or {
+                            a2->b:barrier;
+                            continue Y2
+                        }
+                    }
+                } or {
+                    a2->b:set;
+                    continue Y2
+                } or {
+                    a2->b:unlock;
+                    continue X
+                }
+            }
+        }
+    }
+}
+
+global protocol InvalidProtocolWhichPassesIdTraceCondIrp(role a, role b, role c, role rp) {
+    /* rp is the problematic role */
+    end
 }

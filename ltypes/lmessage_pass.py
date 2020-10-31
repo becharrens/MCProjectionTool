@@ -1,4 +1,4 @@
-from typing import Set, Tuple, Dict
+from typing import Set, Tuple, Dict, Optional, Any
 
 import ltypes
 from ltypes.laction import LAction
@@ -46,6 +46,30 @@ class LMessagePass(LType):
 
     def flatten_recursion(self):
         self.cont.flatten_recursion()
+
+    def get_next_state(self, laction: LAction, tvars: Set[str]) -> Optional[Any]:
+        if laction == self.action:
+            return self.cont
+        return None
+
+    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
+        if self.action == laction:
+            return True
+        if laction.get_participant() == self.action.get_participant():
+            return False
+        return self.cont.is_first_interaction_with_role(laction, tvars)
+
+    def interacts_with_role_before_action(
+        self, role: str, laction: LAction, tvars: Set[str]
+    ) -> bool:
+        if self.action == laction:
+            return False
+        if self.action.get_participant() == role:
+            return True
+        return self.cont.interacts_with_role_before_action(role, laction, tvars)
+
+    def check_valid_projection(self, tvars: Set[str]) -> None:
+        self.cont.check_valid_projection(tvars)
 
     def __str__(self) -> str:
         return self.to_string("")
