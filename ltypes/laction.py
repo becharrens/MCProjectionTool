@@ -33,13 +33,16 @@ class LAction:
             self.participant, self.proj_role, self.action_type.dual(), self.payload
         )
 
+    def hash(self):
+        return str(self).__hash__() % HASH_SIZE
+
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, LAction):
             return False
         return self.__hash__() == o.__hash__()
 
     def __hash__(self) -> int:
-        return str(self).__hash__() % HASH_SIZE
+        return self.hash()
 
     def __str__(self) -> str:
         return f"{self.participant}{self.action_type}{self.payload}"

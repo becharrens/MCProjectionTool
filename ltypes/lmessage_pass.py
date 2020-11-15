@@ -5,31 +5,42 @@ from ltypes.laction import LAction
 from ltypes.ltype import LType
 
 
+def hash_msg_pass(action_hash: int, cont_hash: int):
+    return (action_hash + cont_hash * ltypes.PRIME) % ltypes.HASH_SIZE
+
+
 class LMessagePass(LType):
     def __init__(self, action: LAction, cont: LType) -> None:
         super().__init__()
         self.action = action
         self.cont = cont
-
-    def rec_next_states(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
-        return {self.action: {self.cont}}
+        self.hash_value: Optional[int] = None
 
     def next_states(self) -> Dict[LAction, Set[LType]]:
+        return {self.action: {self.cont}}
+
+    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
         return {self.action: {self.cont}}
 
     def first_participants(self, tvars: Set[str]) -> Set[str]:
         return set(self.action.get_participant())
 
-    def first_actions(self, tvars: Set[str]) -> Set[LAction]:
+    def first_actions(self) -> Set[LAction]:
+        return {self.action}
+
+    def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
         return {self.action}
 
     def set_rec_ltype(self, tvar: str, ltype):
         self.cont.set_rec_ltype(tvar, ltype)
 
-    def hash(self, tvars: Set[str]) -> int:
-        return (
-            self.action.__hash__() * ltypes.PRIME + self.cont.hash(tvars)
-        ) % ltypes.HASH_SIZE
+    def hash(self) -> int:
+        if self.hash_value is None:
+            self.hash_value = hash_msg_pass(self.action.hash(), self.cont.hash())
+        return self.hash_value
+
+    def hash_rec(self, tvars: Set[str]) -> int:
+        return hash_msg_pass(self.action.hash(), self.cont.hash_rec(tvars))
 
     def to_string(self, indent: str) -> str:
         return f"{indent}{self.action};\n{self.cont.to_string(indent)}"
@@ -41,7 +52,7 @@ class LMessagePass(LType):
     def has_rec_var(self, tvar: str) -> bool:
         return self.cont.has_rec_var(tvar)
 
-    def rename_tvars(self, tvars: Set[str], new_tvar, ltype) -> Set[str]:
+    def rename_tvars(self, tvars: Set[str], new_tvar, ltype):
         self.cont.rename_tvars(tvars, new_tvar, ltype)
 
     def flatten_recursion(self):
@@ -68,8 +79,8 @@ class LMessagePass(LType):
             return True
         return self.cont.interacts_with_role_before_action(role, laction, tvars)
 
-    def check_valid_projection(self, tvars: Set[str]) -> None:
-        self.cont.check_valid_projection(tvars)
+    def check_valid_projection(self) -> None:
+        self.cont.check_valid_projection()
 
     def __str__(self) -> str:
         return self.to_string("")
@@ -80,4 +91,4 @@ class LMessagePass(LType):
         return self.__hash__() == o.__hash__()
 
     def __hash__(self) -> int:
-        return self.hash(set())
+        return self.hash()

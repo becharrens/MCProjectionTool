@@ -16,7 +16,7 @@ from ltypes.ltype import LType
 
 
 def hash_state(ltypes: List[LType]):
-    return lmchoice.hash_ltype_list(ltypes, set())
+    return lmchoice.hash_ltype_list(ltypes)
 
 
 def merge_next_states(

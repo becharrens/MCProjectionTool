@@ -36,7 +36,7 @@ def main():
 
                 print("Checking projections...\n\n")
                 for ltype in projections.values():
-                    ltype.check_valid_projection(set())
+                    ltype.check_valid_projection()
                 print("Normalised projections")
                 for role, ltype in projections.items():
                     dfa = DFA(ltype)

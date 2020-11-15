@@ -8,16 +8,22 @@ class LEnd(LType):
     def first_participants(self, tvars: Set[str]) -> Set[str]:
         return set()
 
-    def first_actions(self, tvars: Set[str]) -> Set[LAction]:
+    def first_actions(self) -> Set[LAction]:
+        return set()
+
+    def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
         return set()
 
     def set_rec_ltype(self, tvar: str, ltype):
         pass
 
-    def hash(self, tvars: Set[str]) -> int:
+    def hash(self) -> int:
+        return 0
+
+    def hash_rec(self, tvars: Set[str]) -> int:
         return 1
 
-    def rec_next_states(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
+    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
         return {}
 
     def next_states(self) -> Dict[LAction, Set[LType]]:
@@ -49,8 +55,8 @@ class LEnd(LType):
     ) -> bool:
         return True
 
-    def check_valid_projection(self, tvars) -> None:
-        pass
+    def check_valid_projection(self) -> None:
+        return
 
     def __str__(self) -> str:
         return self.to_string("")

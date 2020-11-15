@@ -45,7 +45,7 @@ class GMessagePass(GType):
 
     def hash(self, tvars: Set[str]) -> int:
         return (
-            self.action.__hash__() * gtypes.PRIME + self.cont.hash(tvars)
+            self.action.__hash__() + self.cont.hash(tvars) * gtypes.PRIME
         ) % gtypes.HASH_SIZE
 
     def to_string(self, indent: str) -> str:

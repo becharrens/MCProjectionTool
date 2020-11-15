@@ -9,9 +9,21 @@ from ltypes.laction import LAction
 from ltypes.ltype import LType
 
 
-def hash_ltype_list(ltype_list, tvars):
-    hashes = tuple(elem.hash(tvars) for elem in ltype_list)
-    return sum(hashes) % ltypes.HASH_SIZE
+def hash_list(hashes: List[int]) -> int:
+    res = 0
+    for hv in hashes:
+        res ^= hv
+    return res
+
+
+def hash_ltype_list_rec(ltype_list, tvars) -> int:
+    hashes = list(set(elem.hash_rec(tvars) for elem in ltype_list))
+    return hash_list(hashes) % ltypes.HASH_SIZE
+
+
+def hash_ltype_list(ltype_list: List[LType]) -> int:
+    hashes = list(set(elem.hash() for elem in ltype_list))
+    return hash_list(hashes) % ltypes.HASH_SIZE
 
 
 # def merge_next_states(
@@ -48,17 +60,20 @@ class LUnmergedChoice(LType):
         self.branches = [projection[role] for projection in projections]
         # TODO: create map with the set of all first gactions in each branch
         self.gaction_mappings = gaction_mappings
+        self.fst_actions: Optional[Set[LAction]] = None
+        self.hash_value: Optional[int] = None
+        self.nxt_states: Optional[Dict[LAction, Set[LType]]] = None
 
-    def check_valid_projection(self, tvars: Set[str]):
+    def check_valid_projection(self):
         for ltype in self.branches:
-            ltype.check_valid_projection(tvars)
+            ltype.check_valid_projection()
 
         for i, ltype1 in enumerate(self.branches):
             for j, ltype2 in enumerate(self.branches):
                 if i == j:
                     continue
-                lactions1 = ltype1.first_actions(set())
-                lactions2 = ltype2.first_actions(set())
+                lactions1 = ltype1.first_actions_rec(set())
+                lactions2 = ltype2.first_actions_rec(set())
                 actions_not_in_i = lactions2.difference(lactions1)
 
                 for action in actions_not_in_i:
@@ -163,7 +178,7 @@ class LUnmergedChoice(LType):
             if self.role not in gaction.get_participants()
         }
         r2_b1_proj = self.projections[i][other_role]
-        for laction in r2_b1_proj.first_actions(set()):
+        for laction in r2_b1_proj.first_actions_rec(set()):
             for gaction in self.gaction_mappings[i][other_role][laction]:
                 if gaction in b1_gactions_wo_rp:
                     next_state: Optional[LType] = r2_b1_proj.get_next_state(
@@ -180,17 +195,29 @@ class LUnmergedChoice(LType):
                     )
                     break
 
-    def first_actions(self, tvars: Set[str]) -> Set[LAction]:
+    def first_actions(self) -> Set[LAction]:
+        if self.fst_actions is None:
+            self.fst_actions = self.first_actions_rec(set())
+        return self.fst_actions
+
+    def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
         return set(
-            action for ltype in self.branches for action in ltype.first_actions(tvars)
+            action
+            for ltype in self.branches
+            for action in ltype.first_actions_rec(tvars)
         )
 
     def set_rec_ltype(self, tvar: str, ltype: LType) -> None:
         for branch in self.branches:
             branch.set_rec_ltype(tvar, ltype)
 
-    def hash(self, tvars: Set[str]) -> int:
-        return hash_ltype_list(self.branches, tvars)
+    def hash(self) -> int:
+        if self.hash_value is None:
+            self.hash_value = hash_ltype_list(self.branches)
+        return self.hash_value
+
+    def hash_rec(self, tvars: Set[str]) -> int:
+        return hash_ltype_list_rec(self.branches, tvars)
 
     def normalise(self) -> LType:
         self.branches = [branch.normalise() for branch in self.branches]
@@ -199,13 +226,16 @@ class LUnmergedChoice(LType):
         # self.check_valid_projection()
         return self
 
-    def rec_next_states(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
-        branch_next_states = [branch.rec_next_states(tvars) for branch in self.branches]
+    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
+        branch_next_states = [branch.next_states_rec(tvars) for branch in self.branches]
         return LUnmergedChoice.merge_next_states(branch_next_states)
 
     def next_states(self) -> Dict[LAction, Set[LType]]:
-        branch_next_states = [branch.next_states() for branch in self.branches]
-        return LUnmergedChoice.merge_next_states(branch_next_states)
+        if self.nxt_states is None:
+            # Calling next_states because this will cache results
+            branch_next_states = [branch.next_states() for branch in self.branches]
+            self.nxt_states = LUnmergedChoice.merge_next_states(branch_next_states)
+        return self.nxt_states
 
     @staticmethod
     def same_first_actions(
@@ -287,28 +317,33 @@ class LUnmergedChoice(LType):
                 return False
         return True
 
+    def set_tvar_hash(self, tvar: str, hash_value):
+        for branch in self.branches:
+            branch.set_tvar_hash(tvar, hash_value)
+
     def __str__(self) -> str:
         return self.to_string("")
 
     def __eq__(self, other):
         if not isinstance(other, LUnmergedChoice):
             return False
-        return self.hash(set()) == other.hash(set())
+        return self.hash_rec(set()) == other.hash_rec(set())
 
     def __hash__(self):
-        return self.hash(set())
+        return self.hash()
 
 
 class LChoice(LType):
     def __init__(self, branches: List[LType]) -> None:
         self.branches = branches
+        self.hash_value = 0
 
     def next_states(self) -> Dict[LAction, Set[Any]]:
         next_states = [id_choice.next_states() for id_choice in self.branches]
         return LChoice.aggregate_states(next_states)
 
-    def rec_next_states(self, tvars: Set[str]) -> Dict[LAction, Set[Any]]:
-        next_states = [branch.rec_next_states(tvars) for branch in self.branches]
+    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[Any]]:
+        next_states = [branch.next_states_rec(tvars) for branch in self.branches]
         return LChoice.aggregate_states(next_states)
 
     @staticmethod
@@ -323,19 +358,29 @@ class LChoice(LType):
             role for ltype in self.branches for role in ltype.first_participants(tvars)
         )
 
-    def first_actions(self, tvars: Set[str]) -> Set[LAction]:
+    def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
         return set(
-            action for ltype in self.branches for action in ltype.first_actions(tvars)
+            action
+            for ltype in self.branches
+            for action in ltype.first_actions_rec(tvars)
         )
 
     def set_rec_ltype(self, tvar: str, ltype):
         for branch in self.branches:
             branch.set_rec_ltype(tvar, ltype)
         self.calculate_hash = True
-        self.hash(set())
+        self.hash_rec(set())
 
-    def hash(self, tvars: Set[str]) -> int:
-        return hash_ltype_list(self.branches, tvars)
+    def first_actions(self) -> Set[LAction]:
+        pass
+
+    def hash(self) -> int:
+        if self.hash_value is None:
+            self.hash_value = hash_ltype_list(self.branches)
+        return self.hash_value
+
+    def hash_rec(self, tvars: Set[str]) -> int:
+        return hash_ltype_list_rec(self.branches, tvars)
 
     def to_string(self, indent: str) -> str:
         new_indent = indent + "\t"
@@ -382,9 +427,9 @@ class LChoice(LType):
                 return False
         return True
 
-    def check_valid_projection(self, tvars: Set[str]) -> None:
+    def check_valid_projection(self) -> None:
         for ltype in self.branches:
-            ltype.check_valid_projection(tvars)
+            ltype.check_valid_projection()
 
     def __str__(self) -> str:
         return self.to_string("")
@@ -392,7 +437,7 @@ class LChoice(LType):
     def __eq__(self, other):
         if not isinstance(other, LUnmergedChoice):
             return False
-        return self.hash(set()) == other.hash(set())
+        return self.hash_rec(set()) == other.hash_rec(set())
 
     def __hash__(self):
-        return self.hash(set())
+        return self.hash()

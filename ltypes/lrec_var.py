@@ -12,43 +12,49 @@ class LRecVar(LType):
         super().__init__()
         self.tvar = var_name
         self.ltype: LType = LEnd()
+        # self.fst_actions: Optional[Set[LAction]] = None
+        # self.hash_value: Optional[int] = None
+        # self.nxt_states: Optional[Dict[LAction, Set[LType]]] = None
 
-    def rec_next_states(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
+    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
         if self.tvar in tvars:
             return {}
         else:
-            # TODO: Add the tvar to the set without creating a new set?
-            return self.ltype.rec_next_states(tvars.union({self.tvar}))
+            return self.ltype.next_states_rec(tvars.union({self.tvar}))
 
     def next_states(self) -> Dict[LAction, Set[LType]]:
-        # TODO: Cache next_states
-        return self.ltype.rec_next_states({self.tvar})
+        return self.ltype.next_states()
 
-    def first_actions(self, tvars: Set[str]) -> Set[LAction]:
+    def first_actions(self) -> Set[LAction]:
+        if self.fst_actions is None:
+            self.fst_actions = self.ltype.first_actions()
+        return self.fst_actions
+
+    def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
         if self.tvar in tvars:
             return set()
-        # TODO: cache first actions?
-        return self.ltype.first_actions(tvars.union({self.tvar}))
+        return self.ltype.first_actions_rec(tvars.union({self.tvar}))
 
     def first_participants(self, tvars: Set[str]) -> Set[str]:
         if self.tvar in tvars:
             return set()
-        # TODO: Add the tvar to the set without creating a new set?
         return self.ltype.first_participants(tvars.union({self.tvar}))
 
     def set_rec_ltype(self, tvar: str, ltype: LType):
         if tvar == self.tvar:
             self.ltype = ltype
 
-    def hash(self, tvars: Set[str]) -> int:
+    def hash(self) -> int:
+        # ltype should be LRecursion, which should have computed
+        # its hash already
+        return self.ltype.hash()
+
+    def hash_rec(self, tvars: Set[str]) -> int:
         # TODO: Fix - tvars should be unique, so using the hash of the
-        # TODO: string always should be fine (ensure tvars are unique as well)
         if self.tvar in tvars:
-            return self.tvar.__hash__() % HASH_SIZE
-        return (
-            self.tvar.__hash__() * ltypes.PRIME
-            + self.ltype.hash(tvars.union({self.tvar}))
-        ) % HASH_SIZE
+            return hash("tvar") % HASH_SIZE
+        # Return hash of 1-unfolded LRecursion ltype
+        return self.ltype.hash_rec(tvars.union({self.tvar}))
 
     def to_string(self, indent: str) -> str:
         return f"{indent}continue {self.tvar}"
@@ -86,10 +92,8 @@ class LRecVar(LType):
             return self.ltype.interacts_with_role_before_action(role, laction, tvars)
         return True
 
-    def check_valid_projection(self, tvars: Set[str]) -> None:
-        if self.tvar in tvars:
-            return
-        self.ltype.check_valid_projection(tvars.union({self.tvar}))
+    def check_valid_projection(self) -> None:
+        return
 
     def __str__(self) -> str:
         return self.to_string("")
@@ -100,4 +104,4 @@ class LRecVar(LType):
         return self.__hash__() == o.__hash__()
 
     def __hash__(self) -> int:
-        return self.hash(set())
+        return self.hash()

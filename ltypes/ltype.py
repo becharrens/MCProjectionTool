@@ -10,7 +10,7 @@ class LType(ABC):
         pass
 
     @abstractmethod
-    def rec_next_states(self, tvars: Set[str]) -> Dict[LAction, Set[Any]]:
+    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[Any]]:
         pass
 
     @abstractmethod
@@ -18,7 +18,11 @@ class LType(ABC):
         pass
 
     @abstractmethod
-    def first_actions(self, tvars: Set[str]) -> Set[LAction]:
+    def first_actions(self) -> Set[LAction]:
+        pass
+
+    @abstractmethod
+    def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
         pass
 
     @abstractmethod
@@ -26,7 +30,11 @@ class LType(ABC):
         pass
 
     @abstractmethod
-    def hash(self, tvars: Set[str]) -> int:
+    def hash(self) -> int:
+        pass
+
+    @abstractmethod
+    def hash_rec(self, tvars: Set[str]) -> int:
         pass
 
     @abstractmethod
@@ -66,5 +74,9 @@ class LType(ABC):
         pass
 
     @abstractmethod
-    def check_valid_projection(self, tvars: Set[str]) -> None:
+    def check_valid_projection(self) -> None:
         pass
+
+    # @abstractmethod
+    # def first_actions(self, tvars: Set[str]) -> None:
+    #     pass
