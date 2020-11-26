@@ -4,7 +4,8 @@ import ltypes
 from ltypes.laction import LAction
 from ltypes.ltype import LType
 
-
+# continuation hash to string
+# hash(str(action hash) + str(cont hash))
 def hash_msg_pass(action_hash: int, cont_hash: int):
     return (action_hash + cont_hash * ltypes.PRIME) % ltypes.HASH_SIZE
 

@@ -1,4 +1,4 @@
-from typing import Dict, Set, List
+from typing import Dict, Set, List, Tuple
 
 import gtypes
 from gtypes.gaction import GAction
@@ -20,6 +20,7 @@ def _hash_list(elem_list, tvars):
 class GChoice(GType):
     def __init__(self, choices: List[GType]) -> None:
         super().__init__()
+        self.ppts: Set[str] = set()
         self.branches = choices
         self.gaction_mappings: List[Dict[str, Dict[LAction, Set[GAction]]]] = []
 
@@ -83,6 +84,22 @@ class GChoice(GType):
                 assert (
                     roles == mapping.keys()
                 ), "Inconsistent Choice: All roles participating in a choice should participate in all branches"
+
+    def all_participants(
+        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
+    ) -> None:
+        for branch in self.branches:
+            branch.all_participants(curr_tvar, tvar_ppts)
+
+    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
+        for branch in self.branches:
+            branch.set_rec_participants(tvar_ppts)
+
+    def ensure_unique_tvars(
+        self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
+    ):
+        for branch in self.branches:
+            branch.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
 
     def __eq__(self, other):
         if not isinstance(other, GChoice):

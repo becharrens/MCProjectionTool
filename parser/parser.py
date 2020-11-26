@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import Dict, List
 
 from lark import Lark, Transformer
@@ -11,11 +12,40 @@ from gtypes.grecursion import GRecursion
 from gtypes.gtype import GType
 
 
+def set_gtype_participants(gtype: GType):
+    tvar0 = "$tvar"
+    tvar_participants = OrderedDict({tvar0: (set(), set())})
+    gtype.all_participants(tvar0, tvar_participants)
+    ppt_mapping = {}
+
+    final_tvars = set()
+    for curr_tvar, (curr_ppts, curr_tvars) in tvar_participants.items():
+        tvars_to_explore = set(curr_tvars)
+        explored_tvars = {curr_tvar}
+        while len(tvars_to_explore) > 0:
+            tvar = tvars_to_explore.pop()
+            if tvar not in explored_tvars:
+                # If tvar hasn't been seen before add it to seen set
+                ppts, tvars = tvar_participants[tvar]
+                curr_ppts |= ppts
+                explored_tvars.add(tvar)
+                if tvar not in final_tvars:
+                    # If final participant set hasn't been computed, explore
+                    # tvar recursively
+                    tvars_to_explore |= tvars
+
+        ppt_mapping[curr_tvar] = curr_ppts
+        final_tvars.add(curr_tvar)
+    gtype.set_rec_participants(ppt_mapping)
+
+
 class Protocol:
     def __init__(self, protocol: str, roles: List[str], gtype: GType) -> None:
         self.protocol = protocol
         self.roles = roles
+        set_gtype_participants(gtype)
         self.gtype: GType = gtype.normalise()
+        self.gtype.ensure_unique_tvars({}, set(), 0)
 
     def __str__(self) -> str:
         tab = "\t"

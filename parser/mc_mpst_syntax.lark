@@ -1,0 +1,27 @@
+start: decl+
+
+decl: "global" "protocol" CNAME "(" role_decl ")" "{" interaction* "}"
+
+role_decl: "role" CNAME ("," "role" CNAME)*
+
+interaction: message_transfer
+   | recursion
+   | choice
+   | END
+   | tvar
+   | "(" interaction ")"
+
+message_transfer: CNAME "->" CNAME ":" WORD ";" interaction
+recursion: CNAME "." interaction
+choice: "choice" interaction  ("or"  interaction )*
+END: "end"
+tvar: CNAME
+
+COMMENT: "/*" /[^*]*/ "*/"
+
+%import common.CNAME
+%import common.WORD
+%import common.WS
+%ignore WS
+%ignore COMMENT
+

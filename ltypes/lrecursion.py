@@ -53,6 +53,7 @@ class LRecursion(LType):
             self.ltype.hash()
         return self.hash_value
 
+    # Use string hash
     def hash_rec(self, tvars):
         return (
             self.tvar.__hash__() + self.ltype.hash_rec(tvars) * ltypes.PRIME

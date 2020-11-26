@@ -202,3 +202,65 @@ global protocol InvalidProtocolWhichPassesIdTraceCondIrp(role a, role b, role c,
     /* rp is the problematic role */
     end
 }
+
+global protocol Invalid1(role a, role b, role c) {
+    choice {
+        a->b:U; end
+    } or {
+        a->c:U; end
+    }
+}
+
+global protocol Invalid2(role a, role b, role c) {
+    choice {
+        a->b:U; b->c:U; c->a:U; end
+    } or {
+        b->c:U; c->a:U; a->b:U; end
+    }
+}
+
+global protocol Valid2(role a, role b, role c) {
+    choice {
+        a->b:U;
+        choice {
+            b->c:U; c->a:U; end
+        } or {
+            c->a:U; b->c:U; end
+        }
+    } or {
+        b->c:U;
+        choice {
+            c->a:U; a->b:U; end
+        } or {
+            a->b:U; c->a:U; end
+        }
+    }
+}
+
+global protocol Invalid3(role a, role b, role c) {
+    choice {
+        a->b:U; b->c:U; c->a:U; end
+    } or {
+        b->c:U; c->a:U; a->b:U; end
+    } or {
+        c->a:U; a->b:U; b->c:U; end
+    }
+}
+
+global protocol Unmergeable(role a, role b, role c, role d, role e, role f, role g, role h) {
+    /* But cannot be handled */
+    choice {
+        e->f:U; g->h:U; a->b:U; a->d:U; a->c:U; end
+    } or {
+        g->h:U; e->f:U; a->b:U; a->c:U; a->d:U; end
+    }
+}
+
+/* NEED TO ENSURE THIS IS HANDLED */
+global protocol InvalidHiddenGAction(role a, role b, role c) {
+    choice {
+        a->b:U; a->c:U; end
+    } or {
+        c->b:U; a->c: U; end
+    }
+}

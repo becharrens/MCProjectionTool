@@ -1,4 +1,4 @@
-from typing import Set, Dict
+from typing import Set, Dict, Tuple
 
 import gtypes
 from gtypes import HASH_SIZE
@@ -15,6 +15,7 @@ class GRecVar(GType):
         super().__init__()
         self.tvar = var_name
         self.gtype: GType = GEnd()
+        self.ppts: Set[str] = set()
 
     def project(self, roles: Set[str]) -> Dict[str, LType]:
         return {role: LRecVar(self.tvar) for role in roles}
@@ -51,9 +52,29 @@ class GRecVar(GType):
         role_mapping: Dict[str, GAction],
         tvars: Set[str],
     ) -> None:
-        if self.tvar in tvars:
+        # If all the roles which appear in the recursion have already been mapped,
+        # then unfolding the recursion any further will not update the mapping
+        if self.tvar in tvars or self.gtype.get_participants().issubset(
+            role_mapping.keys()
+        ):
             return
         self.gtype.build_mapping(mapping, role_mapping, tvars.union({self.tvar}))
+
+    def all_participants(
+        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
+    ) -> None:
+        if self.tvar != curr_tvar:
+            _, curr_tvars = tvar_ppts[curr_tvar]
+            curr_tvars.add(self.tvar)
+
+    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
+        pass
+
+    def ensure_unique_tvars(
+        self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
+    ):
+        if self.tvar in tvar_mapping:
+            self.tvar = tvar_mapping[self.tvar]
 
     def __str__(self) -> str:
         return self.to_string("")

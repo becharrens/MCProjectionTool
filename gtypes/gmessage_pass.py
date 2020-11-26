@@ -1,4 +1,4 @@
-from typing import Set, Dict
+from typing import Set, Dict, Tuple
 
 import gtypes
 from gtypes.gaction import GAction
@@ -28,6 +28,7 @@ class GMessagePass(GType):
         super().__init__()
         self.action = action
         self.cont = cont
+        self.ppts: Set[str] = set()
 
     def project(self, roles: Set[str]) -> Dict[str, LType]:
         projections = self.cont.project(roles)
@@ -89,6 +90,21 @@ class GMessagePass(GType):
             update_mapping(b, self.action, fst_gaction, mapping, role_mapping)
             self.cont.build_mapping(mapping, role_mapping, tvars)
             del role_mapping[b]
+
+    def all_participants(
+        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
+    ) -> None:
+        curr_ppts, _ = tvar_ppts[curr_tvar]
+        curr_ppts |= set(self.action.get_participants())
+        self.cont.all_participants(curr_tvar, tvar_ppts)
+
+    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
+        self.cont.set_rec_participants(tvar_ppts)
+
+    def ensure_unique_tvars(
+        self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
+    ):
+        self.cont.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
 
     def __str__(self) -> str:
         return self.to_string("")

@@ -1,0 +1,61 @@
+global protocol Invalid1(role a, role b, role c) {
+    choice {
+        a->b:U; end
+    } or {
+        a->c:U; end
+    }
+}
+
+global protocol Invalid2(role a, role b, role c) {
+    choice {
+        a->b:U; b->c:U; c->a:U; end
+    } or {
+        b->c:U; c->a:U; a->b:U; end
+    }
+}
+
+global protocol Valid2(role a, role b, role c) {
+    choice {
+        a->b:U;
+        choice {
+            b->c:U; c->a:U; end
+        } or {
+            c->a:U; b->c:U; end
+        }
+    } or {
+        b->c:U;
+        choice {
+            c->a:U; a->b:U; end
+        } or {
+            a->b:U; c->a:U; end
+        }
+    }
+}
+
+global protocol Invalid3(role a, role b, role c) {
+    choice {
+        a->b:U; b->c:U; c->a:U; end
+    } or {
+        b->c:U; c->a:U; a->b:U; end
+    } or {
+        c->a:U; a->b:U; b->c:U; end
+    }
+}
+
+global protocol Unmergeable(role a, ..., role h) {
+    choice {
+        e->f; g->h; a->b; a->d; a->c; end
+    } or {
+        g->h; e->f; a->b; a->c; a->d; end
+    }
+}
+
+global protocol Unmergeable(role a, ..., role h) {
+    choice {
+        rec t1 { a->b; t1}
+    } or {
+        rec t2 { choice {a->b; t2} or {a->b; t2} }
+    }
+}
+
+s1 -- a->b --> s2 -- a->b --> s2
