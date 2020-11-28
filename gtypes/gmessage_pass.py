@@ -59,68 +59,10 @@ class GMessagePass(GType):
     def has_rec_var(self, tvar: str) -> bool:
         return self.cont.has_rec_var(tvar)
 
-    def build_mapping(
-        self,
-        mapping: Dict[str, Dict[LAction, Set[GAction]]],
-        role_mapping: Dict[str, GAction],
-        tvars: Set[str],
-    ) -> None:
-        a, b = self.action.participants
-        update_a = a not in role_mapping
-        update_b = b not in role_mapping
-
-        if not (update_a or update_b):
-            self.cont.build_mapping(mapping, role_mapping, tvars)
-            return
-
-        if update_a and update_b:
-            fst_gaction = self.action
-            update_mapping(a, self.action, fst_gaction, mapping, role_mapping)
-            update_mapping(b, self.action, fst_gaction, mapping, role_mapping)
-            self.cont.build_mapping(mapping, role_mapping, tvars)
-            del role_mapping[a]
-            del role_mapping[b]
-        elif update_a:
-            fst_gaction = role_mapping[b]
-            update_mapping(a, self.action, fst_gaction, mapping, role_mapping)
-            self.cont.build_mapping(mapping, role_mapping, tvars)
-            del role_mapping[a]
-        else:
-            fst_gaction = role_mapping[a]
-            update_mapping(b, self.action, fst_gaction, mapping, role_mapping)
-            self.cont.build_mapping(mapping, role_mapping, tvars)
-            del role_mapping[b]
-
-    def all_participants(
-        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
-    ) -> None:
-        curr_ppts, _ = tvar_ppts[curr_tvar]
-        curr_ppts |= set(self.action.get_participants())
-        self.cont.all_participants(curr_tvar, tvar_ppts)
-
-    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
-        self.cont.set_rec_participants(tvar_ppts)
-
     def ensure_unique_tvars(
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):
         self.cont.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
-
-    def fst_global_actions_rec(
-        self,
-        curr_tvar: str,
-        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
-        tvar_deps: Dict[str, Set[str]],
-    ):
-        action_ppts = set(self.action.get_participants())
-        curr_roles, curr_gactions = rec_gactions[curr_tvar]
-        if len(curr_roles.intersection(action_ppts)) == 0:
-            curr_gactions.add(self.action)
-        curr_roles |= action_ppts
-        self.cont.fst_global_actions_rec(curr_tvar, rec_gactions, tvar_deps)
-
-    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
-        self.cont.set_rec_fst_global_actions(rec_gactions)
 
     def __str__(self) -> str:
         return self.to_string("")

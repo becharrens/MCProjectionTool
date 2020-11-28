@@ -14,8 +14,6 @@ class GRecursion(GType):
         self.tvar = tvar
         self.gtype = gtype
         self.gtype.set_rec_gtype(self.tvar, self)
-        self.mapping: Dict[str, Dict[Tuple[str], Dict[LAction, Set[GAction]]]]
-        self.fst_gactions: Dict[str, Set[GAction]] = {}
 
     def project(self, roles: Set[str]) -> Dict[str, LType]:
         projections = self.gtype.project(roles)
@@ -50,26 +48,6 @@ class GRecursion(GType):
     def has_rec_var(self, tvar: str) -> bool:
         return self.gtype.has_rec_var(tvar)
 
-    def build_mapping(
-        self,
-        mapping: Dict[str, Dict[LAction, Set[GAction]]],
-        role_mapping: Dict[str, GAction],
-        tvars: Set[str],
-    ) -> None:
-        self.gtype.build_mapping(mapping, role_mapping, tvars)
-
-    def all_participants(
-        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
-    ) -> None:
-        _, curr_tvars = tvar_ppts[curr_tvar]
-        curr_tvars.add(self.tvar)
-        tvar_ppts[self.tvar] = (set(), set())
-        self.gtype.all_participants(self.tvar, tvar_ppts)
-
-    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
-        self.ppts = tvar_ppts[self.tvar]
-        self.gtype.set_rec_participants(tvar_ppts)
-
     def ensure_unique_tvars(
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):
@@ -80,20 +58,6 @@ class GRecursion(GType):
         else:
             tvar_names.add(self.tvar)
         self.gtype.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
-
-    def fst_global_actions_rec(
-        self,
-        curr_tvar: str,
-        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
-        tvar_deps: Dict[str, Set[str]],
-    ):
-        tvar_deps[curr_tvar].add(self.tvar)
-        tvar_deps[self.tvar] = set()
-        rec_gactions[self.tvar] = (set(), set())
-        self.gtype.fst_global_actions_rec(self.tvar, rec_gactions, tvar_deps)
-
-    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
-        self.fst_gactions = rec_gactions[self.tvar]
 
     def __str__(self) -> str:
         return self.to_string("")

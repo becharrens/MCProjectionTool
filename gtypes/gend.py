@@ -37,14 +37,6 @@ class GEnd(GType):
     ) -> None:
         pass
 
-    def all_participants(
-        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
-    ) -> None:
-        pass
-
-    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
-        pass
-
     def ensure_unique_tvars(
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):

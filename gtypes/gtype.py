@@ -9,7 +9,7 @@ from ltypes.ltype import LType
 
 class GType(ABC):
     def __init__(self):
-        self.ppts: Set[str] = set()
+        pass
 
     @abstractmethod
     def project(self, roles: Set[str]) -> Dict[str, LType]:
@@ -40,37 +40,6 @@ class GType(ABC):
         pass
 
     @abstractmethod
-    def build_mapping(
-        self,
-        mapping: Dict[str, Dict[LAction, Set[GAction]]],
-        role_mapping: Dict[str, GAction],
-        tvars: Set[str],
-    ) -> None:
-        pass
-
-    @abstractmethod
-    def all_participants(
-        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
-    ) -> None:
-        """
-        tvar_ppts - OrderedDict({tvar: (set(roles), set(tvars))})
-
-        Map every tvar to the set of participants in its body and the set of
-        recursive variables which are present in its body, since they must
-        their participants must also be taken into account.
-
-        Order of keys reflects the hierarchy of the recursion variables
-        """
-        pass
-
-    @abstractmethod
-    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
-        pass
-
-    def get_participants(self) -> Set[str]:
-        return self.ppts
-
-    @abstractmethod
     def ensure_unique_tvars(
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):
@@ -84,20 +53,3 @@ class GType(ABC):
             if unique_tvar not in tvar_names:
                 tvar_names.add(unique_tvar)
                 return unique_tvar, uid
-
-    @abstractmethod
-    def fst_global_actions_rec(
-        self,
-        curr_tvar: str,
-        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
-        tvar_deps: Dict[str, Set[str]],
-    ):
-        """
-        rec_gactions should be an OrderedDict so that order of keys
-        encodes hierarchy of tvars
-        """
-        pass
-
-    @abstractmethod
-    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
-        pass

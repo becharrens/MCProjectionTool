@@ -20,15 +20,12 @@ def _hash_list(elem_list, tvars):
 class GChoice(GType):
     def __init__(self, choices: List[GType]) -> None:
         super().__init__()
-        self.ppts: Set[str] = set()
         self.branches = choices
-        self.gaction_mappings: List[Dict[str, Dict[LAction, Set[GAction]]]] = []
 
     def project(self, roles: Set[str]) -> Dict[str, LType]:
-        self.ensure_consistent_choice()
         branch_projections = [gtype.project(roles) for gtype in self.branches]
         return {
-            role: LUnmergedChoice(role, branch_projections, self.gaction_mappings)
+            role: LUnmergedChoice(role, branch_projections)
             for role in roles
         }
 
@@ -52,7 +49,6 @@ class GChoice(GType):
 
     def normalise(self) -> GType:
         self.branches = [gtype.normalise() for gtype in self.branches]
-        self.build_fst_action_mapping()
         return self
 
     def has_rec_var(self, tvar: str) -> bool:
@@ -61,58 +57,11 @@ class GChoice(GType):
                 return True
         return False
 
-    def build_mapping(
-        self,
-        mapping: Dict[str, Dict[LAction, Set[GAction]]],
-        role_mapping: Dict[str, GAction],
-        tvars: Set[str],
-    ):
-        for gtype in self.branches:
-            gtype.build_mapping(mapping, role_mapping, tvars)
-
-    def build_fst_action_mapping(self):
-        self.gaction_mappings = []
-        for gtype in self.branches:
-            mapping = {}
-            gtype.build_mapping(mapping, {}, set())
-            self.gaction_mappings.append(mapping)
-
-    def ensure_consistent_choice(self):
-        if len(self.gaction_mappings) > 0:
-            roles = self.gaction_mappings[0].keys()
-            for mapping in self.gaction_mappings:
-                assert (
-                    roles == mapping.keys()
-                ), "Inconsistent Choice: All roles participating in a choice should participate in all branches"
-
-    def all_participants(
-        self, curr_tvar: str, tvar_ppts: Dict[str, Tuple[Set[str], Set[str]]]
-    ) -> None:
-        for branch in self.branches:
-            branch.all_participants(curr_tvar, tvar_ppts)
-
-    def set_rec_participants(self, tvar_ppts: Dict[str, Set[str]]) -> None:
-        for branch in self.branches:
-            branch.set_rec_participants(tvar_ppts)
-
     def ensure_unique_tvars(
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):
         for branch in self.branches:
             branch.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
-
-    def fst_global_actions_rec(
-        self,
-        curr_tvar: str,
-        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
-        tvar_deps: Dict[str, Set[str]],
-    ):
-        for branch in self.branches:
-            branch.fst_global_actions_rec(curr_tvar, rec_gactions, tvar_deps)
-
-    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
-        for branch in self.branches:
-            branch.set_rec_fst_global_actions(rec_gactions)
 
     def __eq__(self, other):
         if not isinstance(other, GChoice):
