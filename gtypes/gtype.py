@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Set, Tuple
+from collections import deque
+from typing import Dict, Set, Tuple, Deque
 
 from gtypes.gaction import GAction
 from ltypes.laction import LAction
@@ -83,3 +84,20 @@ class GType(ABC):
             if unique_tvar not in tvar_names:
                 tvar_names.add(unique_tvar)
                 return unique_tvar, uid
+
+    @abstractmethod
+    def fst_global_actions_rec(
+        self,
+        curr_tvar: str,
+        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
+        tvar_deps: Dict[str, Set[str]],
+    ):
+        """
+        rec_gactions should be an OrderedDict so that order of keys
+        encodes hierarchy of tvars
+        """
+        pass
+
+    @abstractmethod
+    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
+        pass

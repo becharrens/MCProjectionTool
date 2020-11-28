@@ -106,6 +106,22 @@ class GMessagePass(GType):
     ):
         self.cont.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
 
+    def fst_global_actions_rec(
+        self,
+        curr_tvar: str,
+        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
+        tvar_deps: Dict[str, Set[str]],
+    ):
+        action_ppts = set(self.action.get_participants())
+        curr_roles, curr_gactions = rec_gactions[curr_tvar]
+        if len(curr_roles.intersection(action_ppts)) == 0:
+            curr_gactions.add(self.action)
+        curr_roles |= action_ppts
+        self.cont.fst_global_actions_rec(curr_tvar, rec_gactions, tvar_deps)
+
+    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
+        self.cont.set_rec_fst_global_actions(rec_gactions)
+
     def __str__(self) -> str:
         return self.to_string("")
 

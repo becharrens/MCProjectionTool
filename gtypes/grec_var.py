@@ -76,6 +76,17 @@ class GRecVar(GType):
         if self.tvar in tvar_mapping:
             self.tvar = tvar_mapping[self.tvar]
 
+    def fst_global_actions_rec(
+        self,
+        curr_tvar: str,
+        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
+        tvar_deps: Dict[str, Set[str]],
+    ):
+        pass
+
+    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
+        pass
+
     def __str__(self) -> str:
         return self.to_string("")
 

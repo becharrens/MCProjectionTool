@@ -101,6 +101,19 @@ class GChoice(GType):
         for branch in self.branches:
             branch.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
 
+    def fst_global_actions_rec(
+        self,
+        curr_tvar: str,
+        rec_gactions: Dict[str, Tuple[Set[str], Set[GAction]]],
+        tvar_deps: Dict[str, Set[str]],
+    ):
+        for branch in self.branches:
+            branch.fst_global_actions_rec(curr_tvar, rec_gactions, tvar_deps)
+
+    def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
+        for branch in self.branches:
+            branch.set_rec_fst_global_actions(rec_gactions)
+
     def __eq__(self, other):
         if not isinstance(other, GChoice):
             return False
