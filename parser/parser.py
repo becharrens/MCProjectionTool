@@ -11,6 +11,7 @@ from gtypes.grec_var import GRecVar
 from gtypes.grecursion import GRecursion
 from gtypes.gtype import GType
 
+
 class Protocol:
     def __init__(self, protocol: str, roles: List[str], gtype: GType) -> None:
         self.protocol = protocol
@@ -27,6 +28,7 @@ class Protocol:
 
 
 def parse_file(file_name) -> Dict[str, Protocol]:
+    # parser = Lark.open("mc_mpst_syntax.lark", rel_to=__file__, parser="lalr")
     parser = Lark.open("syntax.lark", rel_to=__file__, parser="lalr")
 
     with open(file_name, "r") as f:

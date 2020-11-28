@@ -35,11 +35,20 @@ def main():
                 # projections = p
                 for role, ltype in projections.items():
                     print(f"{role}@{protocol.protocol}:\n")
+                    # Compute hashes for recursive constructs:
+                    # - First compute a preliminary hash where all tvars return same
+                    #   constant hash
+                    ltype.hash_rec(True)
+                    # - Recompute the hash of the recursions using their preliminary
+                    #   hashes of each recursive constuct as the hash for each tvar
+                    ltype.hash()
                     print(str(ltype), "\n\n")
 
                 print("Checking projections...\n\n")
                 for ltype in projections.values():
+                    # Checking projection for one ltype will check all projections types
                     ltype.check_valid_projection()
+                    break
                 print("Normalised projections")
                 for role, ltype in projections.items():
                     dfa = DFA(ltype)

@@ -33,11 +33,6 @@ class LRecVar(LType):
             return set()
         return self.ltype.first_actions_rec(tvars.union({self.tvar}))
 
-    def first_participants(self, tvars: Set[str]) -> Set[str]:
-        if self.tvar in tvars:
-            return set()
-        return self.ltype.first_participants(tvars.union({self.tvar}))
-
     def set_rec_ltype(self, tvar: str, ltype: LType):
         if tvar == self.tvar:
             self.ltype = ltype
@@ -47,12 +42,10 @@ class LRecVar(LType):
         # its hash already
         return self.ltype.hash()
 
-    def hash_rec(self, tvars: Set[str]) -> int:
-        # TODO: Fix - tvars should be unique, so using the hash of the
-        if self.tvar in tvars:
+    def hash_rec(self, const_tvar_hash) -> int:
+        if const_tvar_hash:
             return hash("tvar") % HASH_SIZE
-        # Return hash of 1-unfolded LRecursion ltype
-        return self.ltype.hash_rec(tvars.union({self.tvar}))
+        return self.hash()
 
     def to_string(self, indent: str) -> str:
         return f"{indent}continue {self.tvar}"

@@ -13,7 +13,7 @@ from ltypes.ltype import LType
 
 
 def _hash_list(elem_list, tvars):
-    hashes = tuple(elem.hash_rec(tvars) for elem in elem_list)
+    hashes = tuple(elem.hash_rec(False) for elem in elem_list)
     return sum(hashes) % gtypes.HASH_SIZE
 
 

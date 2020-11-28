@@ -17,7 +17,7 @@ class LEnd(LType):
     def hash(self) -> int:
         return 0
 
-    def hash_rec(self, tvars: Set[str]) -> int:
+    def hash_rec(self, const_tvar_hash: bool) -> int:
         return 0
 
     def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:

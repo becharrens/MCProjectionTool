@@ -30,7 +30,7 @@ class LType(ABC):
         pass
 
     @abstractmethod
-    def hash_rec(self, tvars: Set[str]) -> int:
+    def hash_rec(self, const_tvar_hash: bool) -> int:
         pass
 
     @abstractmethod

@@ -51,10 +51,13 @@ class DFAState:
         )
         self.uid = DFAState.state_id
         DFAState.state_id += 1
-        self.hash = hash_state(self.ltypes)
+        self.hash_value = hash_state(self.ltypes)
+
+    def hash(self):
+        return self.hash_value
 
     def __hash__(self):
-        return self.hash
+        return self.hash_value
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, DFAState):
@@ -83,7 +86,7 @@ class DFA:
 
         start = DFAState([self.ltype])
         queue.append(start)
-        all_states: Dict[int, DFAState] = {start.__hash__(): start}
+        all_states: Dict[int, DFAState] = {start.hash(): start}
 
         self.transitions: Dict[DFAState, Dict[LAction, DFAState]] = {start: {}}
 

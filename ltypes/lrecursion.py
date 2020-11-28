@@ -6,11 +6,16 @@ from ltypes.laction import LAction
 from ltypes.ltype import LType
 
 
+def hash_rec(rec_hash: int):
+    return (hash("tvar") + rec_hash * ltypes.PRIME) % ltypes.HASH_SIZE
+
+
 class LRecursion(LType):
     def __init__(self, tvar: str, ltype: LType) -> None:
         super().__init__()
         self.tvar = tvar
         self.ltype = ltype
+        self.update_hash = True
         self.ltype.set_rec_ltype(self.tvar, self)
         self.fst_actions: Optional[Set[LAction]] = None
         self.hash_value: Optional[int] = None
@@ -43,18 +48,17 @@ class LRecursion(LType):
         return self.ltype.first_actions_rec(tvars)
 
     def hash(self) -> int:
-        if self.hash_value is None:
+        if self.update_hash:
             # Compute hash (forcing computation)
-            self.hash_value = self.hash_rec(set())
+            self.update_hash = False
+            self.hash_value = hash_rec(self.ltype.hash_rec(False))
             # Cache hash values for all local types in body
-            self.ltype.hash()
         return self.hash_value
 
     # Use string hash
-    def hash_rec(self, tvars):
-        return (
-            self.tvar.__hash__() + self.ltype.hash_rec(tvars) * ltypes.PRIME
-        ) % ltypes.HASH_SIZE
+    def hash_rec(self, const_tvar_hash):
+        self.hash_value = hash_rec(self.ltype.hash_rec(const_tvar_hash))
+        return self.hash_value
 
     def to_string(self, indent: str) -> str:
         next_indent = indent + "\t"

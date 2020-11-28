@@ -23,9 +23,6 @@ class LMessagePass(LType):
     def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
         return {self.action: {self.cont}}
 
-    def first_participants(self, tvars: Set[str]) -> Set[str]:
-        return set(self.action.get_participant())
-
     def first_actions(self) -> Set[LAction]:
         return {self.action}
 
@@ -40,8 +37,8 @@ class LMessagePass(LType):
             self.hash_value = hash_msg_pass(self.action.hash(), self.cont.hash())
         return self.hash_value
 
-    def hash_rec(self, tvars: Set[str]) -> int:
-        return hash_msg_pass(self.action.hash(), self.cont.hash_rec(tvars))
+    def hash_rec(self, const_tvar_hash) -> int:
+        return hash_msg_pass(self.action.hash(), self.cont.hash_rec(const_tvar_hash))
 
     def to_string(self, indent: str) -> str:
         return f"{indent}{self.action};\n{self.cont.to_string(indent)}"
