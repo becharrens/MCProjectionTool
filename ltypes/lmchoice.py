@@ -48,152 +48,62 @@ def hash_ltype_list(ltype_list: List[LType]) -> int:
 
 
 class LUnmergedChoice(LType):
-    def __init__(
-        self,
-        role: str,
-        projections: List[Dict[str, LType]],
-        gaction_mappings: List[Dict[str, Dict[LAction, Set[GAction]]]],
-    ):
+    def __init__(self, role: str, projections: List[Dict[str, LType]]):
         assert len(projections) >= 1, "A choice should have at least 1 branch"
         self.role = role
         self.projections = projections
         self.branches = [projection[role] for projection in projections]
-        # TODO: create map with the set of all first gactions in each branch
-        self.gaction_mappings = gaction_mappings
         self.fst_actions: Optional[Set[LAction]] = None
         self.hash_value: Optional[int] = None
         self.nxt_states: Optional[Dict[LAction, Set[LType]]] = None
 
     def check_valid_projection(self):
-        for ltype in self.branches:
-            ltype.check_valid_projection()
-
-        for i, ltype1 in enumerate(self.branches):
-            for j, ltype2 in enumerate(self.branches):
-                if i == j:
-                    continue
-                lactions1 = ltype1.first_actions_rec(set())
-                lactions2 = ltype2.first_actions_rec(set())
-                actions_not_in_i = lactions2.difference(lactions1)
-
-                for action in actions_not_in_i:
-                    # Check actions not dependent on common fst global action
-                    self.check_action_does_not_depend_on_common_gactions(action, i, j)
-
-                    # For any fist global action in b1 which doesn't appear in b2
-                    # and where self.role doesn't participate, check 'action' cannot
-                    # be carried out before gaction
-                    self.check_action_in_j_cannot_be_carried_out_before_actions_in_i(
-                        action, i, j
-                    )
-
-    def check_action_does_not_depend_on_common_gactions(
-        self, action: LAction, b1_idx: int, b2_idx: int
-    ):
-        """
-        action - action which we want to check
-        b1 - index of branch being checked
-        b2 - index of branch where 'action' is a first action for self.role
-             which does not appear in b1
-        """
-        fst_gactions_b2 = self.gaction_mappings[b2_idx][self.role][action]
-        b1_gactions = set().union(
-            *tuple(self.gaction_mappings[b1_idx][self.role].values())
-        )
-        assert b1_gactions.isdisjoint(fst_gactions_b2), (
-            f"First action from branch {b2_idx} which doesn't appear "
-            f"in branch {b1_idx} should not depend on actions which aren't "
-            f"common to both branches"
+        for branch in self.branches:
+            branch.check_valid_projection()
+        role_fst_actions = [
+            {role: ltype.first_actions() for role, ltype in branch_projection.items()}
+            for branch_projection in self.projections
+        ]
+        assert self.can_apply_two_roles_rule(
+            role_fst_actions
+        ) or self.can_apply_merge_rule(role_fst_actions), (
+            "Cannot apply projection rules. Global type must satisfy one of the following:\n"
+            " - At most one role can have a different behaviour across all branches\n "
+            "- All roles have the same behaviour across branches, except possibly two, "
+            "which always interact with each other first"
         )
 
-    def check_action_in_j_cannot_be_carried_out_before_actions_in_i(
-        self, action: LAction, i: int, j: int
-    ):
-        b1_gactions: Set[GAction] = set().union(
-            *tuple(self.gaction_mappings[i][self.role].values())
-        )
-        b2_gactions: Set[GAction] = set().union(
-            *tuple(self.gaction_mappings[j][self.role].values())
-        )
-        gactions = b1_gactions.difference(b2_gactions)
-        gactions: Set[GAction] = {
-            gaction
-            for gaction in gactions
-            if self.role not in gaction.get_participants()
-        }
+    def can_apply_two_roles_rule(
+        self, role_fst_actions: List[Dict[str, Set[LAction]]]
+    ) -> bool:
+        role_actions = role_fst_actions[0]
+        candidates = set()
+        for branch_fst_actions in role_fst_actions:
+            for role, fst_actions in branch_fst_actions.items():
+                if role_actions[role] != fst_actions:
+                    ppts = set(action.get_participant() for action in fst_actions)
+                    if len(ppts) > 1:
+                        return False
+                    if len(candidates) == 0:
+                        other_ppt = ppts.pop()
+                        candidates = {role, other_ppt}
+                    elif role not in candidates:
+                        return False
+        return True
 
-        other_role = action.get_participant()
-        dual_action = action.dual()
-        # Ensure trace which appears in b2 cannot happen before rp
-        # choooses trace from b1
-        for b1_gaction in gactions:
-            if other_role in b1_gaction.get_participants():
-                # Ensure action.dual() is not the first interaction
-                # between other_role and self.role in the trace
-                # starting with b1_gaction in b1 for other_role
-                trace_action = b1_gaction.project(other_role)
-                # Only need to check one trace, because trace equiv property will
-                # ensure the same holds for all traces starting with the same
-                # first action
-                next_state: Optional[LType] = self.projections[i][
-                    other_role
-                ].get_next_state(trace_action, set())
-                assert next_state is not None, (
-                    "next state should not be none, as the trace action should "
-                    "be a first global action in b1"
-                )
-                assert next_state.interacts_with_role_before_action(
-                    self.role, dual_action, set()
-                ), f"{action} should not be the first interaction between {self.role} and {other_role} in trace of {b1_gaction}"
-            else:
-                for b2_gaction in self.gaction_mappings[j][self.role][action]:
-                    common_roles = set(b2_gaction.get_participants()).intersection(
-                        set(b1_gaction.get_participants())
-                    )
-                    assert (
-                        len(common_roles) > 0
-                    ), "There should be at least one common role between gaction1 and gaction2"
-                    interacts_with_self_role_before_gaction2 = False
-                    for b1_role in common_roles:
-                        next_state: Optional[LType] = self.projections[i][
-                            b1_role
-                        ].get_next_state(b1_gaction.project(b1_role), set())
-                        assert next_state is not None, (
-                            "next state should not be none, as the trace action should "
-                            "be a first global action in b1"
-                        )
-                        if next_state.interacts_with_role_before_action(
-                            self.role, b2_gaction.project(b1_role), set()
-                        ):
-                            interacts_with_self_role_before_gaction2 = True
-                    assert interacts_with_self_role_before_gaction2, (
-                        "At least one of the common roles in gaction1 and gaction2 needs to ensure that "
-                        "gaction2 does not happen before an interaction with self.role"
-                    )
-
-        # Ensure 'action' cannot happen in b1 before rp chooses a trace from b1
-        b1_gactions_wo_rp: Set[GAction] = {
-            gaction
-            for gaction in b1_gactions
-            if self.role not in gaction.get_participants()
-        }
-        r2_b1_proj = self.projections[i][other_role]
-        for laction in r2_b1_proj.first_actions_rec(set()):
-            for gaction in self.gaction_mappings[i][other_role][laction]:
-                if gaction in b1_gactions_wo_rp:
-                    next_state: Optional[LType] = r2_b1_proj.get_next_state(
-                        laction, set()
-                    )
-                    assert (
-                        next_state is not None
-                    ), "next state for a first action should never be none"
-                    assert next_state.interacts_with_role_before_action(
-                        self.role, dual_action, set()
-                    ), (
-                        "r2 should not be able to carry out action in b2 not present in b1 for "
-                        "rp before rp chooses a trace from b1"
-                    )
-                    break
+    def can_apply_merge_rule(
+        self, role_fst_actions: List[Dict[str, Set[LAction]]]
+    ) -> bool:
+        role_actions = role_fst_actions[0]
+        candidate = None
+        for branch_fst_actions in role_fst_actions:
+            for role, fst_actions in branch_fst_actions.items():
+                if role_actions[role] != fst_actions:
+                    if candidate is not None and candidate != role:
+                        return False
+                    if candidate is None:
+                        candidate = role
+        return True
 
     def first_actions(self) -> Set[LAction]:
         if self.fst_actions is None:
@@ -303,24 +213,6 @@ class LUnmergedChoice(LType):
                 return next_state
         return None
 
-    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
-        for ltype in self.branches:
-            if ltype.is_first_interaction_with_role(laction, tvars):
-                return True
-        return False
-
-    def interacts_with_role_before_action(
-        self, role: str, laction: LAction, tvars: Set[str]
-    ) -> bool:
-        for ltype in self.branches:
-            if not ltype.interacts_with_role_before_action(role, laction, tvars):
-                return False
-        return True
-
-    def set_tvar_hash(self, tvar: str, hash_value):
-        for branch in self.branches:
-            branch.set_tvar_hash(tvar, hash_value)
-
     def __str__(self) -> str:
         return self.to_string("")
 
@@ -412,20 +304,6 @@ class LChoice(LType):
             if next_state is not None:
                 return next_state
         return None
-
-    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
-        for ltype in self.branches:
-            if ltype.is_first_interaction_with_role(laction, tvars):
-                return True
-        return False
-
-    def interacts_with_role_before_action(
-        self, role: str, laction: LAction, tvars: Set[str]
-    ) -> bool:
-        for ltype in self.branches:
-            if not ltype.interacts_with_role_before_action(role, laction, tvars):
-                return False
-        return True
 
     def check_valid_projection(self) -> None:
         for ltype in self.branches:

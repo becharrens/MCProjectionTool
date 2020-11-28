@@ -20,14 +20,12 @@ def _hash_list(elem_list, tvars):
 class GChoice(GType):
     def __init__(self, choices: List[GType]) -> None:
         super().__init__()
+        assert len(choices) > 1, "Choice must have at least one branch"
         self.branches = choices
 
     def project(self, roles: Set[str]) -> Dict[str, LType]:
         branch_projections = [gtype.project(roles) for gtype in self.branches]
-        return {
-            role: LUnmergedChoice(role, branch_projections)
-            for role in roles
-        }
+        return {role: LUnmergedChoice(role, branch_projections) for role in roles}
 
     def first_actions(self, tvars: Set[str]) -> Set[GAction]:
         return set(

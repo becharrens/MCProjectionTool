@@ -64,22 +64,6 @@ class LMessagePass(LType):
             return self.cont
         return None
 
-    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
-        if self.action == laction:
-            return True
-        if laction.get_participant() == self.action.get_participant():
-            return False
-        return self.cont.is_first_interaction_with_role(laction, tvars)
-
-    def interacts_with_role_before_action(
-        self, role: str, laction: LAction, tvars: Set[str]
-    ) -> bool:
-        if self.action == laction:
-            return False
-        if self.action.get_participant() == role:
-            return True
-        return self.cont.interacts_with_role_before_action(role, laction, tvars)
-
     def check_valid_projection(self) -> None:
         self.cont.check_valid_projection()
 

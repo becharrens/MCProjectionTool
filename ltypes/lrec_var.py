@@ -26,9 +26,7 @@ class LRecVar(LType):
         return self.ltype.next_states()
 
     def first_actions(self) -> Set[LAction]:
-        if self.fst_actions is None:
-            self.fst_actions = self.ltype.first_actions()
-        return self.fst_actions
+        return self.ltype.first_actions()
 
     def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
         if self.tvar in tvars:
@@ -77,20 +75,6 @@ class LRecVar(LType):
         if self.tvar in tvars:
             return None
         return self.ltype.get_next_state(laction, tvars.union({self.tvar}))
-
-    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
-        if self.tvar not in tvars:
-            tvars.add(self.tvar)
-            return self.ltype.is_first_interaction_with_role(laction, tvars)
-        return False
-
-    def interacts_with_role_before_action(
-        self, role: str, laction: LAction, tvars: Set[str]
-    ) -> bool:
-        if self.tvar not in tvars:
-            tvars.add(self.tvar)
-            return self.ltype.interacts_with_role_before_action(role, laction, tvars)
-        return True
 
     def check_valid_projection(self) -> None:
         return

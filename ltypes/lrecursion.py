@@ -31,9 +31,6 @@ class LRecursion(LType):
         assert tvar != self.tvar
         self.ltype.set_rec_ltype(tvar, gtype)
 
-    def first_participants(self, tvars):
-        return self.ltype.first_participants(tvars)
-
     def first_actions(self) -> Set[LAction]:
         if self.fst_actions is None:
             # Compute first actions (forcing computation)
@@ -87,18 +84,6 @@ class LRecursion(LType):
 
     def get_next_state(self, laction: LAction, tvars: Set[str]) -> Optional[Any]:
         return self.ltype.get_next_state(laction, tvars)
-
-    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
-        if self.tvar not in tvars:
-            tvars.add(self.tvar)
-        return self.ltype.is_first_interaction_with_role(laction, tvars)
-
-    def interacts_with_role_before_action(
-        self, role: str, laction: LAction, tvars: Set[str]
-    ) -> bool:
-        if self.tvar not in tvars:
-            tvars.add(self.tvar)
-        return self.ltype.interacts_with_role_before_action(laction, tvars)
 
     def check_valid_projection(self) -> None:
         self.ltype.check_valid_projection()

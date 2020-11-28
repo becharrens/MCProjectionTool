@@ -5,9 +5,6 @@ from ltypes.ltype import LType
 
 
 class LEnd(LType):
-    def first_participants(self, tvars: Set[str]) -> Set[str]:
-        return set()
-
     def first_actions(self) -> Set[LAction]:
         return set()
 
@@ -46,14 +43,6 @@ class LEnd(LType):
 
     def get_next_state(self, laction: LAction, tvars: Set[str]) -> Optional[LType]:
         return None
-
-    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
-        return False
-
-    def interacts_with_role_before_action(
-        self, role: str, laction: LAction, tvars: Set[str]
-    ) -> bool:
-        return True
 
     def check_valid_projection(self) -> None:
         return

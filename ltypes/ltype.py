@@ -14,10 +14,6 @@ class LType(ABC):
         pass
 
     @abstractmethod
-    def first_participants(self, tvars: Set[str]) -> Set[str]:
-        pass
-
-    @abstractmethod
     def first_actions(self) -> Set[LAction]:
         pass
 
@@ -60,17 +56,6 @@ class LType(ABC):
 
     @abstractmethod
     def get_next_state(self, laction: LAction, tvars: Set[str]) -> Optional[Any]:
-        pass
-
-    # TODO: remove
-    @abstractmethod
-    def is_first_interaction_with_role(self, laction: LAction, tvars: Set[str]) -> bool:
-        pass
-
-    @abstractmethod
-    def interacts_with_role_before_action(
-        self, role: str, laction: LAction, tvars: Set[str]
-    ) -> bool:
         pass
 
     @abstractmethod
