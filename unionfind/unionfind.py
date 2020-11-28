@@ -13,7 +13,7 @@ class UnionFind:
             root1 = self.elems[participants[0]].find_root()
             root2 = self.elems[participants[1]].find_root()
             if root1 == root2:
-                self.elems[participants[0]].add(branch)
+                root1.add(branch)
             else:
                 new_root, old_root = root1.union(root2)
                 new_root.add(branch)
@@ -21,7 +21,7 @@ class UnionFind:
 
         elif participants[0] in self.elems:
             self.elems[participants[0]].add(branch)
-            self.elems[participants[1]] = self.elems[participants[0]]
+            self.elems[participants[1]] = self.elems[participants[0]].find_root()
             pass
         elif participants[1] in self.elems:
             self.elems[participants[1]].add(branch)
