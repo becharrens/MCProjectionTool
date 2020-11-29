@@ -1,4 +1,4 @@
-from typing import Set, Dict, Tuple, Any, Optional
+from typing import Set, Dict, Tuple, Any, Optional, List
 
 from ltypes.laction import LAction
 from ltypes.ltype import LType
@@ -46,6 +46,17 @@ class LEnd(LType):
 
     def check_valid_projection(self) -> None:
         return
+
+    def calc_fst_actions_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        fst_actions: Dict[str, Set[LAction]],
+        update_tvars: Dict[str, bool],
+    ):
+        pass
+
+    def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
+        pass
 
     def __str__(self) -> str:
         return self.to_string("")

@@ -1,9 +1,29 @@
-from collections import OrderedDict
+from collections import OrderedDict, deque
+from typing import Set, Dict
 
 from dfa.dfa import DFA
-from gtypes.gtype import GType
+from ltypes.laction import LAction
 from parser import parser as scr_parser
 import argparse
+
+
+def compute_recursion_fst_actions(
+    fst_actions: Dict[str, Set[LAction]], tvar_deps: Dict[str, Set[str]]
+):
+    computed = set()
+    for tvar, tvar_fst_actions in fst_actions.items():
+        tvar_queue = deque(tvar_deps[tvar])
+        # Compute transitive closure of tvars
+        visited = set(tvar_deps[tvar])
+        visited.add(tvar)
+        while tvar_queue:
+            new_tvar = tvar_queue.popleft()
+            tvar_fst_actions |= fst_actions[new_tvar]
+            if new_tvar not in computed:
+                new_tvars = tvar_deps[new_tvar].difference(visited)
+                tvar_queue.extend(new_tvars)
+                visited |= new_tvars
+        computed.add(tvar)
 
 
 def main():
@@ -29,10 +49,7 @@ def main():
                 projections = {
                     role: ltype.normalise() for role, ltype in projections.items()
                 }
-                # p = {}
-                # for role in protocol.roles:
-                #     p[role] = projections[role].normalise()
-                # projections = p
+
                 for role, ltype in projections.items():
                     print(f"{role}@{protocol.protocol}:\n")
                     # Compute hashes for recursive constructs:
@@ -42,7 +59,18 @@ def main():
                     # - Recompute the hash of the recursions using their preliminary
                     #   hashes of each recursive constuct as the hash for each tvar
                     ltype.hash()
-                    print(str(ltype), "\n\n")
+                    # print(str(ltype), "\n\n")
+
+                print("Calculating rec first actions")
+                for role, ltype in projections.items():
+                    print(f"{role}@{protocol.protocol}:\n")
+                    fst_actions = {}
+                    tvar_deps = {}
+                    update_tvars = {}
+                    ltype.calc_fst_actions_rec(tvar_deps, fst_actions, update_tvars)
+                    compute_recursion_fst_actions(fst_actions, tvar_deps)
+                    ltype.set_fst_actions_rec(fst_actions)
+                    print(f"{role}: Done")
 
                 print("Checking projections...\n\n")
                 for ltype in projections.values():
@@ -54,7 +82,7 @@ def main():
                     dfa = DFA(ltype)
                     new_ltype = dfa.translate()
                     print(f"{role}@{protocol.protocol}:\n")
-                    print(str(new_ltype), "\n\n")
+                    # print(str(new_ltype), "\n\n")
                 print("\n\n=============================>\n")
             except Exception as e:
                 name = "@".join([x for x in [role, proto_name] if x is not None])

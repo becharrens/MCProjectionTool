@@ -1,4 +1,4 @@
-from typing import Set, Tuple, Dict, Optional, Any
+from typing import Set, Tuple, Dict, Optional, Any, List
 
 import ltypes
 from ltypes.laction import LAction
@@ -63,6 +63,24 @@ class LMessagePass(LType):
 
     def check_valid_projection(self) -> None:
         self.cont.check_valid_projection()
+
+    def calc_fst_actions_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        fst_actions: Dict[str, Set[LAction]],
+        update_tvars: Dict[str, bool],
+    ):
+        reset_values = tuple(tvar for tvar, update in update_tvars.items() if update)
+        for tvar, update in tuple(update_tvars.items()):
+            if update:
+                fst_actions[tvar].add(self.action)
+                update_tvars[tvar] = False
+            self.cont.calc_fst_actions_rec(tvar_deps, fst_actions, update_tvars)
+        for tvar in reset_values:
+            update_tvars[tvar] = True
+
+    def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
+        self.cont.set_fst_actions_rec(fst_actions)
 
     def __str__(self) -> str:
         return self.to_string("")

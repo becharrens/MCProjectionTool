@@ -1,4 +1,4 @@
-from typing import Set, Tuple, Dict, Any, Optional
+from typing import Set, Tuple, Dict, Any, Optional, List
 
 import ltypes
 from gtypes import HASH_SIZE
@@ -71,6 +71,19 @@ class LRecVar(LType):
 
     def check_valid_projection(self) -> None:
         return
+
+    def calc_fst_actions_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        fst_actions: Dict[str, Set[LAction]],
+        update_tvars: Dict[str, bool],
+    ):
+        for tvar, update in tuple(update_tvars.items()):
+            if update:
+                tvar_deps[tvar].add(self.tvar)
+
+    def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
+        pass
 
     def __str__(self) -> str:
         return self.to_string("")

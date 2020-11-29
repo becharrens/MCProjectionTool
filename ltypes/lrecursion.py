@@ -1,4 +1,4 @@
-from typing import Set, Tuple, Dict, Type, cast, Optional, Any
+from typing import Set, Tuple, Dict, Type, cast, Optional, Any, List
 
 import ltypes
 from gtypes.gtype import GType
@@ -37,11 +37,6 @@ class LRecursion(LType):
         self.ltype.set_rec_ltype(tvar, gtype)
 
     def first_actions(self) -> Set[LAction]:
-        if self.fst_actions is None:
-            # Compute first actions (forcing computation)
-            self.fst_actions = self.ltype.first_actions_rec(set())
-            # Cache first actions for all local types in body
-            self.ltype.first_actions()
         return self.fst_actions
 
     def first_actions_rec(self, tvars: Set[str]) -> Set[LAction]:
@@ -91,6 +86,22 @@ class LRecursion(LType):
 
     def check_valid_projection(self) -> None:
         self.ltype.check_valid_projection()
+
+    def calc_fst_actions_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        fst_actions: Dict[str, Set[LAction]],
+        update_tvars: Dict[str, bool],
+    ):
+        tvar_deps[self.tvar] = set()
+        fst_actions[self.tvar] = set()
+        update_tvars[self.tvar] = True
+        self.ltype.calc_fst_actions_rec(tvar_deps, fst_actions, update_tvars)
+        del update_tvars[self.tvar]
+
+    def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
+        self.fst_actions = fst_actions[self.tvar]
+        self.ltype.set_fst_actions_rec(fst_actions)
 
     def __str__(self) -> str:
         return self.to_string("")

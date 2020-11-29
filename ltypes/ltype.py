@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Set, Dict, Tuple, Any, Optional
+from typing import Set, Dict, Tuple, Any, Optional, List
 
 from ltypes.laction import LAction
 
@@ -60,6 +60,19 @@ class LType(ABC):
 
     @abstractmethod
     def check_valid_projection(self) -> None:
+        pass
+
+    @abstractmethod
+    def calc_fst_actions_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        fst_actions: Dict[str, Set[LAction]],
+        update_tvars: Dict[str, bool],
+    ):
+        pass
+
+    @abstractmethod
+    def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
         pass
 
     # @abstractmethod

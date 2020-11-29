@@ -8,26 +8,23 @@ class UnionFind:
         self.leaders: Set[int] = set()
         self.all_subsets: Dict[int, Elem] = {}
 
-    def add(self, participants: List[str], branch: Any):
+    def add(self, participants: List[str]):
         if participants[0] in self.elems and participants[1] in self.elems:
             root1 = self.elems[participants[0]].find_root()
             root2 = self.elems[participants[1]].find_root()
-            if root1 == root2:
-                root1.add(branch)
-            else:
+            if root1 != root2:
                 new_root, old_root = root1.union(root2)
-                new_root.add(branch)
                 self.leaders.remove(old_root.get_uid())
 
         elif participants[0] in self.elems:
-            self.elems[participants[0]].add(branch)
+            self.elems[participants[0]].add(participants[1])
             self.elems[participants[1]] = self.elems[participants[0]].find_root()
             pass
         elif participants[1] in self.elems:
-            self.elems[participants[1]].add(branch)
+            self.elems[participants[1]].add(participants[0])
             self.elems[participants[0]] = self.elems[participants[1]]
         else:
-            elem = Elem(self.uid, branch)
+            elem = Elem(self.uid, participants)
             self.leaders.add(self.uid)
             self.all_subsets[self.uid] = elem
             self.elems[participants[0]] = elem
@@ -40,9 +37,9 @@ class UnionFind:
 
 
 class Elem:
-    def __init__(self, uid: int, value: Any):
+    def __init__(self, uid: int, values: List[str]):
         self.uid = uid
-        self.values = [value]
+        self.values = values
         self.parent = self
 
     def __len__(self):
