@@ -3,8 +3,6 @@ from typing import Set, List, Dict, Any, Optional
 import ltypes
 
 
-from errors.errors import InconsistentChoice, InvalidChoice, NotTraceEquivalent
-from gtypes.gaction import GAction
 from ltypes.laction import LAction
 from ltypes.ltype import LType
 
@@ -64,13 +62,17 @@ class LUnmergedChoice(LType):
             {role: ltype.first_actions() for role, ltype in branch_projection.items()}
             for branch_projection in self.projections
         ]
-        assert self.can_apply_two_roles_rule(
-            role_fst_actions
-        ) or self.can_apply_merge_rule(role_fst_actions), (
+        assert (
+            self.can_apply_two_roles_rule(role_fst_actions)
+            or self.can_apply_merge_rule(role_fst_actions)
+            or self.is_directed_choice(role_fst_actions)
+        ), (
             "Cannot apply projection rules. Global type must satisfy one of the following:\n"
             " - At most one role can have a different behaviour across all branches\n "
-            "- All roles have the same behaviour across branches, except possibly two, "
-            "which always interact with each other first"
+            " - All roles have the same behaviour across branches, except possibly two, "
+            "which always interact with each other first\n"
+            " - The choice must be directed: A single role  must decide which branch to follow"
+            " - and all the other roles must either iteract"
         )
 
     def can_apply_two_roles_rule(
@@ -103,6 +105,40 @@ class LUnmergedChoice(LType):
                         return False
                     if candidate is None:
                         candidate = role
+        return True
+
+    def is_directed_choice(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
+        candidates = None
+        role_actions = {}
+        for branch_fst_actions in role_fst_actions:
+            for role, fst_actions in branch_fst_actions.items():
+                if role not in role_actions:
+                    role_actions[role] = set()
+                if role_actions[role] != fst_actions:
+                    role_actions[role] |= fst_actions
+                    ppts = set(action.get_participant() for action in fst_actions)
+                    if candidates is not None:
+                        if role in candidates:
+                            if len(ppts) > 1:
+                                candidates = {role}
+                            elif len(ppts) == 1:
+                                other_ppt = ppts.pop()
+                                if other_ppt not in candidates:
+                                    candidates = {role}
+                        else:
+                            if len(ppts) > 1:
+                                return False
+                            elif len(ppts) == 1:
+                                other_ppt = ppts.pop()
+                                if other_ppt not in candidates:
+                                    return False
+                                candidates = {other_ppt}
+                    if candidates is None:
+                        if len(ppts) == 1:
+                            other_ppt = ppts.pop()
+                            candidates = {role, other_ppt}
+                        else:
+                            candidates = {role}
         return True
 
     def first_actions(self) -> Set[LAction]:
