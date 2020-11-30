@@ -47,8 +47,12 @@ def hash_ltype_list(ltype_list: List[LType]) -> int:
 
 
 class LUnmergedChoice(LType):
+    uid = 0
+
     def __init__(self, role: str, projections: List[Dict[str, LType]]):
         assert len(projections) >= 1, "A choice should have at least 1 branch"
+        self.uid = LUnmergedChoice.uid
+        LUnmergedChoice.uid += 1
         self.role = role
         self.projections = projections
         self.branches = [projection[role] for projection in projections]
@@ -77,6 +81,7 @@ class LUnmergedChoice(LType):
             " - The choice must be directed: A single role must decide which branch to follow"
             " - and all the other roles must either iteract"
         )
+        print(f"Checked choice {self.uid}")
 
     def can_apply_two_roles_rule(
         self, role_fst_actions: List[Dict[str, Set[LAction]]]
@@ -110,6 +115,58 @@ class LUnmergedChoice(LType):
                         candidate = role
         return True
 
+    # def can_apply_partial_rules(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
+    #     all_role_fst_actions = {
+    #         role: {
+    #             action
+    #             for branch_fst_actions in role_fst_actions
+    #             for action in branch_fst_actions[role]
+    #         }
+    #         for role in role_fst_actions[0]
+    #     }
+    #     all_branches = set(range(len(role_fst_actions)))
+    #
+    #     branches = set(all_branches)
+    #     # Compute partition
+    #     while branches:
+    #         for branch in branches:
+    #             branch_fst_actions = role_fst_actions[branch]
+    #             roles_with_partial_behaviour = set(
+    #                 role
+    #                 for role in role_fst_actions[0]
+    #                 if branch_fst_actions[role] != all_role_fst_actions[role]
+    #             )
+    #             if len(roles_with_partial_behaviour) == 0:
+    #                 all_branches.remove(branch)
+    #                 break
+    #             if len(roles_with_partial_behaviour) > 2:
+    #                 return False
+    #             if len(roles_with_partial_behaviour) == 1:
+    #                 merge_partition = self.gen_merge_partition(
+    #                     branches,
+    #                     role_fst_actions,
+    #                     all_role_fst_actions,
+    #                     next(iter(roles_with_partial_behaviour)),
+    #                 )
+    #                 if merge_partition is not None:
+    #                     all_branches -= merge_partition
+    #                     break
+    #             if len(roles_with_partial_behaviour) >= 1:
+    #                 # two_role_partition = self.gen_two_role_partition(
+    #                 #     branch,
+    #                 #     role_fst_actions,
+    #                 #     all_role_fst_actions,
+    #                 #     roles_with_partial_behaviour,
+    #                 # )
+    #                 two_role_partition = None
+    #                 if two_role_partition is None:
+    #                     return False
+    #                 else:
+    #                     all_branches -= two_role_partition
+    #                     break
+    #         branches = set(all_branches)
+    #     return True
+
     def can_apply_partial_rules(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
         all_role_fst_actions = {
             role: {
@@ -124,41 +181,22 @@ class LUnmergedChoice(LType):
         branches = set(all_branches)
         # Compute partition
         while branches:
-            for branch in branches:
-                branch_fst_actions = role_fst_actions[branch]
-                roles_with_partial_behaviour = set(
-                    role
-                    for role in role_fst_actions[0]
-                    if branch_fst_actions[role] != all_role_fst_actions[role]
+            found_partition = False
+            for role in role_fst_actions[0]:
+                partition = self.gen_merge_partition(
+                    branches, role_fst_actions, all_role_fst_actions, role
                 )
-                if len(roles_with_partial_behaviour) == 0:
-                    all_branches.remove(branch)
+                if partition is not None:
+                    all_branches -= partition
+                    found_partition = True
                     break
-                if len(roles_with_partial_behaviour) > 2:
-                    return False
-                if len(roles_with_partial_behaviour) == 1:
-                    merge_partition = self.gen_merge_partition(
-                        branches,
-                        role_fst_actions,
-                        all_role_fst_actions,
-                        next(iter(roles_with_partial_behaviour)),
-                    )
-                    if merge_partition is not None:
-                        all_branches -= merge_partition
-                        break
-                if len(roles_with_partial_behaviour) >= 1:
-                    # two_role_partition = self.gen_two_role_partition(
-                    #     branch,
-                    #     role_fst_actions,
-                    #     all_role_fst_actions,
-                    #     roles_with_partial_behaviour,
-                    # )
-                    two_role_partition = None
-                    if two_role_partition is None:
-                        return False
-                    else:
-                        all_branches -= two_role_partition
-                        break
+            if not found_partition:
+                for branch in branches:
+                    for role in role_fst_actions[0]:
+                        if role_fst_actions[branch][role] != all_role_fst_actions[role]:
+                            return False
+                return True
+
             branches = set(all_branches)
         return True
 
