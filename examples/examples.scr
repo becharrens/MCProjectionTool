@@ -363,3 +363,24 @@ global protocol TwoParticipantRule1(role a,role b, role c, role d, role e){
         }
     }
 }
+
+global protocol P1(role a, role b, role c, role d) {
+    rec t {
+        a->b:U; c->d:U; continue t
+    }
+}
+
+global protocol P2(role a, role b, role c, role d, role e) {
+    rec t {
+        a->b:U; a->c:U; d->e:U; continue t
+    }
+}
+global protocol P3(role a, role b, role c, role d) {
+    rec t {
+        choice {
+            a->b:U; continue t
+        } or {
+            c->d:U; continue t
+        }
+    }
+}

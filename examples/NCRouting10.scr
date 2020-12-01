@@ -1,0 +1,71 @@
+global protocol Routing(role routing, role output1, role output2, role processing) {
+    Routing_10_0. processing->routing:packet; Routing_10_1. (
+		choice
+			processing->routing:packet; Routing_10_2. (
+				choice
+					processing->routing:packet; Routing_10_3. (
+						choice
+							processing->routing:packet; Routing_10_4. (
+								choice
+									processing->routing:packet; Routing_10_5. (
+										choice
+											processing->routing:packet; Routing_10_6. (
+												choice
+													processing->routing:packet; Routing_10_7. (
+														choice
+															processing->routing:packet; Routing_10_8. (
+																choice
+																	processing->routing:packet; Routing_10_9. (
+																		choice
+																			processing->routing:packet; (
+																				choice
+																					routing->output1:packet; Routing_10_9
+																				or
+																					routing->output2:packet; Routing_10_9
+																			)
+																		or
+																			routing->output1:packet; Routing_10_8
+																		or
+																			routing->output2:packet; Routing_10_8
+																	)
+																or
+																	routing->output1:packet; Routing_10_7
+																or
+																	routing->output2:packet; Routing_10_7
+															)
+														or
+															routing->output1:packet; Routing_10_6
+														or
+															routing->output2:packet; Routing_10_6
+													)
+												or
+													routing->output1:packet; Routing_10_5
+												or
+													routing->output2:packet; Routing_10_5
+											)
+										or
+											routing->output1:packet; Routing_10_4
+										or
+											routing->output2:packet; Routing_10_4
+									)
+								or
+									routing->output1:packet; Routing_10_3
+								or
+									routing->output2:packet; Routing_10_3
+							)
+						or
+							routing->output1:packet; Routing_10_2
+						or
+							routing->output2:packet; Routing_10_2
+					)
+				or
+					routing->output1:packet; Routing_10_1
+				or
+					routing->output2:packet; Routing_10_1
+			)
+		or
+			routing->output1:packet; Routing_10_0
+		or
+			routing->output2:packet; Routing_10_0
+	)
+}
