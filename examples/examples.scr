@@ -198,11 +198,6 @@ global protocol KVStoreSeq(role a1, role a2, role b) {
     }
 }
 
-global protocol InvalidProtocolWhichPassesIdTraceCondIrp(role a, role b, role c, role rp) {
-    /* rp is the problematic role */
-    end
-}
-
 global protocol Invalid1(role a, role b, role c) {
     choice {
         a->b:U; end
@@ -282,5 +277,89 @@ global protocol Buffer(role p, role c, role b) {
         p->b:U; b->c:U; b->c:U; end
     } or {
         b->c:U; p->b:U; b->c:U; end
+    }
+}
+
+global protocol GSemantics(role p1, role p2, role q1, role q2) {
+    choice {
+        p1->q1:U;
+        choice {
+            p2->q2:U; end
+        } or {
+            q2->p2:U; end
+        }
+    } or {
+        q1->p1:U;
+        choice {
+            p2->q2:U; end
+        } or {
+            q2->p2:U; end
+        }
+    }
+}
+
+/* Valid only if directed choice is enabled */
+global protocol Example212(role p, role q, role r) {
+    choice {
+        p->q:L; r->p:M; end
+    } or {
+        r->p:M;
+        choice {
+            p->q:L; end
+        } or {
+            p->q:N; end
+        }
+    }
+}
+
+global protocol MultipleProducerOneConsumer(role p1, role p2, role cons, role buf) {
+    choice {
+        p1->buf:U;
+        choice {
+            p2->buf:U; buf->cons:U; buf->cons:U; end
+        } or {
+            buf->cons:U; p2->buf:U; buf->cons:U; end
+        }
+    } or {
+        p2->buf:U;
+        choice {
+            p1->buf:U; buf->cons:U; buf->cons:U; end
+        } or {
+            buf->cons:U; p1->buf:U; buf->cons:U; end
+        }
+    }
+}
+
+global protocol Loop1(role a, role b, role c, role d, role e) {
+    rec loop {
+        a->b:nat; a->c:nat; d->e:nat; continue loop
+    }
+}
+
+global protocol Loop2(role a, role b, role c, role d, role e) {
+    rec loop {
+        choice {
+            a->b:nat; a->c:nat; continue loop
+        } or {
+            d->e:nat; continue loop
+        }
+    }
+}
+/* Basic two participant rule does not suffice */
+global protocol TwoParticipantRule1(role a,role b, role c, role d, role e){
+    choice {
+        c->d:U; d->e:U;
+        choice {
+            a->b:U; c->a:U; b->d:U; end
+        } or {
+            b->a:U; a->c:U; d->b:U; end
+        }
+    } or {
+        c->d:U; d->e:U;
+        choice {
+            a->b:L; c->a:U; b->d:U; end
+        } or {
+            b->a:L; a->c:U; d->b:U; end
+        }
     }
 }
