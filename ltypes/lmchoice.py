@@ -66,10 +66,9 @@ class LUnmergedChoice(LType):
         self.ensure_consistent_choice(role_fst_actions)
         assert (
             self.can_apply_two_roles_rule(role_fst_actions)
-            or self.can_apply_merge_rule(role_fst_actions)
+            # or self.can_apply_merge_rule(role_fst_actions)
             or self.can_apply_directed_choice_projection(role_fst_actions)
             or self.can_apply_partial_rules(role_fst_actions)
-            # or self.can_apply_two_orchestrating_roles_rule(role_fst_actions)
         ), (
             "Cannot apply projection rules. Global type must satisfy one of the following:\n"
             " - At most one role can have a different behaviour across all branches\n "
@@ -82,34 +81,60 @@ class LUnmergedChoice(LType):
     def can_apply_two_roles_rule(
         self, role_fst_actions: List[Dict[str, Set[LAction]]]
     ) -> bool:
-        role_actions = role_fst_actions[0]
-        candidates = set()
-        for branch_fst_actions in role_fst_actions:
-            for role, fst_actions in branch_fst_actions.items():
-                if role_actions[role] != fst_actions:
-                    ppts = set(action.get_participant() for action in fst_actions)
-                    if len(ppts) > 1:
-                        return False
-                    if len(candidates) == 0:
-                        other_ppt = ppts.pop()
-                        candidates = {role, other_ppt}
-                    elif role not in candidates:
-                        return False
-        return True
+        all_fst_actions = self.get_all_fst_actions(role_fst_actions)
+        same_behaviour_roles = {
+            role
+            for role, fst_actions in all_fst_actions.items()
+            if self.same_behaviour_role(role, role_fst_actions, fst_actions)
+        }
+        if len(same_behaviour_roles) == len(all_fst_actions):
+            return True
+        if len(same_behaviour_roles) != len(all_fst_actions) - 2:
+            return False
+        to_consider = set(all_fst_actions.keys()).difference(same_behaviour_roles)
+        r1, r2 = tuple(to_consider)
+        r1_ppts = self.action_participants(all_fst_actions[r1])
+        r2_ppts = self.action_participants(all_fst_actions[r2])
+        if len(r1_ppts) != 1 or next(iter(r1_ppts)) != r2:
+            return False
+        return len(r2_ppts) == 1 and next(iter(r2_ppts)) == r1
+        # for role in to_consider:
+        #     fst_actions = all_fst_actions[role]
+        #     if role not in candidates:
+        #         ppts = self.action_participants(fst_actions)
+        #         if len(ppts) == 1:
+        #             other_role = next(iter(ppts))
+        #             other_ppts = self.action_participants(all_fst_actions[other_role])
+        #             if len(other_ppts) == 1 and role == next(iter(other_ppts)):
+        #                 candidates.add(role)
+        #                 candidates.add(other_role)
+        # There should be at most two roles
+        # if len(candidates) > 2:
+        #     return False
+        # Check that all roles either have the same behaviour across branches
+        # or only depend on one of the candidate roles
+        # valid_roles = same_behaviour_roles.union(candidates)
+        # for role in set(all_fst_actions.keys()).difference(valid_roles):
+        #     ppts = self.action_participants(all_fst_actions[role])
+        #     if len(ppts) != 1 or next(iter(ppts)) not in candidates:
+        #         return False
+        #     valid_roles.add(role)
+        #     break
+        # Only the two candidates can can different behaviours
+        # return True
 
     def can_apply_merge_rule(
         self, role_fst_actions: List[Dict[str, Set[LAction]]]
     ) -> bool:
-        role_actions = role_fst_actions[0]
-        candidate = None
-        for branch_fst_actions in role_fst_actions:
-            for role, fst_actions in branch_fst_actions.items():
-                if role_actions[role] != fst_actions:
-                    if candidate is not None and candidate != role:
-                        return False
-                    if candidate is None:
-                        candidate = role
-        return True
+        all_fst_actions = self.get_all_fst_actions(role_fst_actions)
+        same_behaviour_roles = {
+            role
+            for role, fst_actions in all_fst_actions.items()
+            if self.same_behaviour_role(role, role_fst_actions, fst_actions)
+        }
+        if len(same_behaviour_roles) == len(all_fst_actions):
+            return True
+        return len(same_behaviour_roles) == len(all_fst_actions) - 1
 
     # def can_apply_partial_rules(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
     #     all_role_fst_actions = {
@@ -164,30 +189,9 @@ class LUnmergedChoice(LType):
     #     return True
 
     def can_apply_partial_rules(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
+        """ Can partition branches to apply merge rule """
         all_role_fst_actions = self.get_all_fst_actions(role_fst_actions)
         all_branches = set(range(len(role_fst_actions)))
-
-        # branches = set(all_branches)
-        # # Compute partition
-        # while branches:
-        #     found_partition = False
-        #     for role in role_fst_actions[0]:
-        #         partition = self.gen_merge_partition(
-        #             branches, role_fst_actions, all_role_fst_actions, role
-        #         )
-        #         if partition is not None:
-        #             all_branches -= partition
-        #             found_partition = True
-        #             break
-        #     if not found_partition:
-        #         for branch in branches:
-        #             for role in role_fst_actions[0]:
-        #                 if role_fst_actions[branch][role] != all_role_fst_actions[role]:
-        #                     return False
-        #         return True
-        #
-        #     branches = set(all_branches)
-        # return True
 
         return self.can_partition_branches(
             all_branches,
@@ -203,6 +207,14 @@ class LUnmergedChoice(LType):
         all_role_fst_actions: Dict[str, Set[LAction]],
         role_fst_actions: List[Dict[str, Set[LAction]]],
     ):
+        # Check if all roles can perform all behaviours in all branches
+        # (the partition is valid without partitioning on any particular role)
+        if self.is_valid_partition(
+            all_role_fst_actions, branches, None, role_fst_actions
+        ):
+            # If branches is empty function will return true
+            return True
+
         candidates = set(candidate_roles)
         for role in candidate_roles:
             all_fst_actions = {
@@ -210,8 +222,11 @@ class LUnmergedChoice(LType):
                 for branch in branches
                 for action in role_fst_actions[branch][role]
             }
+            # Can role still perform all its fst actions
             if all_role_fst_actions[role] != all_fst_actions:
                 return False
+            # If role has full behaviour across all branches, cannot partition
+            # based on role
             same_behaviour = True
             for branch in branches:
                 if role_fst_actions[branch][role] != all_fst_actions:
@@ -220,16 +235,24 @@ class LUnmergedChoice(LType):
             if same_behaviour:
                 candidates.remove(role)
                 continue
+            # Gen partition
             partition = {
                 branch
                 for branch in branches
                 if role_fst_actions[branch][role] != all_role_fst_actions[role]
             }
+            # Ensure all other roles can perform all their actions in all branches
             if not self.is_valid_partition(
                 all_role_fst_actions, partition, role, role_fst_actions
             ):
                 continue
-            if partition == branches:
+            # Check this role performs all its actions in partition
+            partition_fst_actions = {
+                action
+                for branch in partition
+                for action in role_fst_actions[branch][role]
+            }
+            if partition_fst_actions != all_role_fst_actions[role]:
                 continue
             other_branches = branches.difference(partition)
             candidates.remove(role)
@@ -345,66 +368,6 @@ class LUnmergedChoice(LType):
         return self.is_valid_composition_of_directed_choices(
             role_subsets, role_fst_actions
         )
-
-    # def can_apply_two_orchestrating_roles_rule(
-    #     self, role_fst_actions: List[Dict[str, Set[LAction]]]
-    # ):
-    #     all_fst_actions = self.get_all_fst_actions(role_fst_actions)
-    #     # Roles which interact with different roles
-    #     orchestrating_roles = dict()
-    #     same_behaviour_roles = {
-    #         role
-    #         for role, fst_actions in all_fst_actions.items()
-    #         if self.same_behaviour_role(role, role_fst_actions, fst_actions)
-    #     }
-    #     roles_interact_only_with_each_other = False
-    #     for role, fst_actions in all_fst_actions.items():
-    #         if role not in same_behaviour_roles:
-    #             ppts = self.action_participants(fst_actions)
-    #             # TODO: Double check
-    #             for ppt in ppts:
-    #                 if ppt in same_behaviour_roles:
-    #                     ppt_actions = self.action_participants(all_fst_actions[ppt])
-    #                     if len(ppt_actions) != 1 or next(iter(ppt_actions)) != role:
-    #                         return False
-    #             if len(ppts) > 1:
-    #                 orchestrating_roles[role] = ppts
-    #                 # roles_with_more_than_one_ppt += 1
-    #             elif len(ppts) == 1:
-    #                 other_role = next(iter(ppts))
-    #                 other_ppts = self.action_participants(all_fst_actions[other_role])
-    #                 if len(other_ppts) == 1:
-    #                     if next(iter(other_ppts)) == role:
-    #                         orchestrating_roles[role] = ppts
-    #                         roles_interact_only_with_each_other = True
-    #                     else:
-    #                         return False
-    #     if len(orchestrating_roles) > 2 or len(orchestrating_roles) < 1:
-    #         return False
-    #
-    #     # Ensure orchestration roles interact well
-    #     if len(orchestrating_roles) == 1:
-    #         return True
-    #     if len(orchestrating_roles) == 2 and roles_interact_only_with_each_other:
-    #         return True
-    #
-    #     r1, r2 = tuple(orchestrating_roles)
-    #
-    #     # There must exist a branch where r1 performs its first action and
-    #     # the other role performs the other one
-    #     for fst_action in all_fst_actions[r1]:
-    #         for other_fst_action in all_fst_actions[r2]:
-    #             found_branch = False
-    #             for branch_fst_actions in role_fst_actions:
-    #                 if (
-    #                     fst_action in branch_fst_actions[r1]
-    #                     and other_fst_action in branch_fst_actions[r2]
-    #                 ):
-    #                     found_branch = True
-    #                     break
-    #             if not found_branch:
-    #                 return False
-    #     return True
 
     def action_participants(self, local_actions: Set[LAction]):
         return {action.get_participant() for action in local_actions}
@@ -590,14 +553,6 @@ class LUnmergedChoice(LType):
     def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
         for ltype in self.branches:
             ltype.set_next_states_rec(next_states)
-
-    # def is_orchestrating_role(self, role: str, all_fst_actions: Dict[str, Set[LAction]], action_ppts: Set[str],
-    #                           same_behaviour_roles):
-    #     for ppt in action_ppts:
-    #         ppts = self.action_participants(all_fst_actions[ppt])
-    #         if not (len(ppts) == 1 and next(iter(ppts)) == role):
-    #             return False
-    #     return True
 
     def __str__(self) -> str:
         return self.to_string("")
