@@ -1,0 +1,17 @@
+global protocol LoadBalancer15(role B1,role B2,role B3,role B4,role B5,role B6,role B7,role B8,role B9,role B10,role B11,role B12,role B13,role B14,role B15,role A) {
+    rec X { choice { A->B1:Request ; B1->A:Response ; continue X }
+         or { A->B2:Request ; B2->A:Response ; continue X }
+         or { A->B3:Request ; B3->A:Response ; continue X }
+         or { A->B4:Request ; B4->A:Response ; continue X }
+         or { A->B5:Request ; B5->A:Response ; continue X }
+         or { A->B6:Request ; B6->A:Response ; continue X }
+         or { A->B7:Request ; B7->A:Response ; continue X }
+         or { A->B8:Request ; B8->A:Response ; continue X }
+         or { A->B9:Request ; B9->A:Response ; continue X }
+         or { A->B10:Request ; B10->A:Response ; continue X }
+         or { A->B11:Request ; B11->A:Response ; continue X }
+         or { A->B12:Request ; B12->A:Response ; continue X }
+         or { A->B13:Request ; B13->A:Response ; continue X }
+         or { A->B14:Request ; B14->A:Response ; continue X }
+         or { A->B15:Request ; B15->A:Response ; continue X } }
+}

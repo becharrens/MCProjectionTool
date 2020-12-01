@@ -1,0 +1,69 @@
+
+global protocol PubSub03(role A1, role A2, role A3, role B) {
+    ( X .
+      ( choice A1->B:Sub ; ( X .
+          ( choice A2->B:Sub ; ( X .
+              ( choice A3->B:Sub ; ( X .
+                  ( choice B->A1:Pub ; X
+                  or B->A2:Pub ; X
+                  or B->A3:Pub ; X
+                ) )
+              or B->A1:Pub ; X
+              or B->A2:Pub ; X
+            ) )
+          or A3->B:Sub ; ( X .
+              ( choice A2->B:Sub ; ( X .
+                  ( choice B->A1:Pub ; X
+                  or B->A2:Pub ; X
+                  or B->A3:Pub ; X
+                ) )
+              or B->A1:Pub ; X
+              or B->A3:Pub ; X
+            ) )
+          or B->A1:Pub ; X
+        ) )
+      or A2->B:Sub ; ( X .
+          ( choice A1->B:Sub ; ( X .
+              ( choice A3->B:Sub ; ( X .
+                  ( choice B->A1:Pub ; X
+                  or B->A2:Pub ; X
+                  or B->A3:Pub ; X
+                ) )
+              or B->A1:Pub ; X
+              or B->A2:Pub ; X
+            ) )
+          or A3->B:Sub ; ( X .
+              ( choice A1->B:Sub ; ( X .
+                  ( choice B->A1:Pub ; X
+                  or B->A2:Pub ; X
+                  or B->A3:Pub ; X
+                ) )
+              or B->A2:Pub ; X
+              or B->A3:Pub ; X
+            ) )
+          or B->A2:Pub ; X
+        ) )
+      or A3->B:Sub ; ( X .
+          ( choice A1->B:Sub ; ( X .
+              ( choice A2->B:Sub ; ( X .
+                  ( choice B->A1:Pub ; X
+                  or B->A2:Pub ; X
+                  or B->A3:Pub ; X
+                ) )
+              or B->A1:Pub ; X
+              or B->A3:Pub ; X
+            ) )
+          or A2->B:Sub ; ( X .
+              ( choice A1->B:Sub ; ( X .
+                  ( choice B->A1:Pub ; X
+                  or B->A2:Pub ; X
+                  or B->A3:Pub ; X
+                ) )
+              or B->A2:Pub ; X
+              or B->A3:Pub ; X
+            ) )
+          or B->A3:Pub ; X
+        ) )
+    ) )
+
+}

@@ -1,0 +1,261 @@
+
+global protocol KVStore15(role A1,role A2,role A3,role A4,role A5,role A6,role A7,role A8,role A9,role A10,role A11,role A12,role A13,role A14,role A15,role B) {
+    rec X {
+        choice {
+            A1->B:Lock ;
+            rec Y1 {
+                choice {
+                    rec Z1 {
+                        choice {
+                            A1->B:Get ; A1->B:Val ; continue Z1
+                        } or {
+                            A1->B:Barrier ; continue Y1
+                        }
+                    }
+                } or {
+                    A1->B:Set ; continue Y1
+                } or {
+                    A1->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A2->B:Lock ;
+            rec Y2 {
+                choice {
+                    rec Z2 {
+                        choice {
+                            A2->B:Get ; A2->B:Val ; continue Z2
+                        } or {
+                            A2->B:Barrier ; continue Y2
+                        }
+                    }
+                } or {
+                    A2->B:Set ; continue Y2
+                } or {
+                    A2->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A3->B:Lock ;
+            rec Y3 {
+                choice {
+                    rec Z3 {
+                        choice {
+                            A3->B:Get ; A3->B:Val ; continue Z3
+                        } or {
+                            A3->B:Barrier ; continue Y3
+                        }
+                    }
+                } or {
+                    A3->B:Set ; continue Y3
+                } or {
+                    A3->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A4->B:Lock ;
+            rec Y4 {
+                choice {
+                    rec Z4 {
+                        choice {
+                            A4->B:Get ; A4->B:Val ; continue Z4
+                        } or {
+                            A4->B:Barrier ; continue Y4
+                        }
+                    }
+                } or {
+                    A4->B:Set ; continue Y4
+                } or {
+                    A4->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A5->B:Lock ;
+            rec Y5 {
+                choice {
+                    rec Z5 {
+                        choice {
+                            A5->B:Get ; A5->B:Val ; continue Z5
+                        } or {
+                            A5->B:Barrier ; continue Y5
+                        }
+                    }
+                } or {
+                    A5->B:Set ; continue Y5
+                } or {
+                    A5->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A6->B:Lock ;
+            rec Y6 {
+                choice {
+                    rec Z6 {
+                        choice {
+                            A6->B:Get ; A6->B:Val ; continue Z6
+                        } or {
+                            A6->B:Barrier ; continue Y6
+                        }
+                    }
+                } or {
+                    A6->B:Set ; continue Y6
+                } or {
+                    A6->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A7->B:Lock ;
+            rec Y7 {
+                choice {
+                    rec Z7 {
+                        choice {
+                            A7->B:Get ; A7->B:Val ; continue Z7
+                        } or {
+                            A7->B:Barrier ; continue Y7
+                        }
+                    }
+                } or {
+                    A7->B:Set ; continue Y7
+                } or {
+                    A7->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A8->B:Lock ;
+            rec Y8 {
+                choice {
+                    rec Z8 {
+                        choice {
+                            A8->B:Get ; A8->B:Val ; continue Z8
+                        } or {
+                            A8->B:Barrier ; continue Y8
+                        }
+                    }
+                } or {
+                    A8->B:Set ; continue Y8
+                } or {
+                    A8->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A9->B:Lock ;
+            rec Y9 {
+                choice {
+                    rec Z9 {
+                        choice {
+                            A9->B:Get ; A9->B:Val ; continue Z9
+                        } or {
+                            A9->B:Barrier ; continue Y9
+                        }
+                    }
+                } or {
+                    A9->B:Set ; continue Y9
+                } or {
+                    A9->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A10->B:Lock ;
+            rec Y10 {
+                choice {
+                    rec Z10 {
+                        choice {
+                            A10->B:Get ; A10->B:Val ; continue Z10
+                        } or {
+                            A10->B:Barrier ; continue Y10
+                        }
+                    }
+                } or {
+                    A10->B:Set ; continue Y10
+                } or {
+                    A10->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A11->B:Lock ;
+            rec Y11 {
+                choice {
+                    rec Z11 {
+                        choice {
+                            A11->B:Get ; A11->B:Val ; continue Z11
+                        } or {
+                            A11->B:Barrier ; continue Y11
+                        }
+                    }
+                } or {
+                    A11->B:Set ; continue Y11
+                } or {
+                    A11->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A12->B:Lock ;
+            rec Y12 {
+                choice {
+                    rec Z12 {
+                        choice {
+                            A12->B:Get ; A12->B:Val ; continue Z12
+                        } or {
+                            A12->B:Barrier ; continue Y12
+                        }
+                    }
+                } or {
+                    A12->B:Set ; continue Y12
+                } or {
+                    A12->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A13->B:Lock ;
+            rec Y13 {
+                choice {
+                    rec Z13 {
+                        choice {
+                            A13->B:Get ; A13->B:Val ; continue Z13
+                        } or {
+                            A13->B:Barrier ; continue Y13
+                        }
+                    }
+                } or {
+                    A13->B:Set ; continue Y13
+                } or {
+                    A13->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A14->B:Lock ;
+            rec Y14 {
+                choice {
+                    rec Z14 {
+                        choice {
+                            A14->B:Get ; A14->B:Val ; continue Z14
+                        } or {
+                            A14->B:Barrier ; continue Y14
+                        }
+                    }
+                } or {
+                    A14->B:Set ; continue Y14
+                } or {
+                    A14->B:Unlock ; continue X
+                }
+            }
+        } or {
+            A15->B:Lock ;
+            rec Y15 {
+                choice {
+                    rec Z15 {
+                        choice {
+                            A15->B:Get ; A15->B:Val ; continue Z15
+                        } or {
+                            A15->B:Barrier ; continue Y15
+                        }
+                    }
+                } or {
+                    A15->B:Set ; continue Y15
+                } or {
+                    A15->B:Unlock ; continue X
+                }
+            }
+        }
+    }
+}

@@ -264,3 +264,23 @@ global protocol InvalidHiddenGAction(role a, role b, role c) {
         c->b:U; a->c: U; end
     }
 }
+
+global protocol RecBuffer(role p, role c, role b) {
+    rec t {
+        p->b:U;
+        choice {
+            p->b:U; b->c:U; b->c:U; continue t
+        } or {
+            b->c:U; p->b:U; b->c:U; continue t
+        }
+    }
+}
+
+global protocol Buffer(role p, role c, role b) {
+    p->b:U;
+    choice {
+        p->b:U; b->c:U; b->c:U; end
+    } or {
+        b->c:U; p->b:U; b->c:U; end
+    }
+}
