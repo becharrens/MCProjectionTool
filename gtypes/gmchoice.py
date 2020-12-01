@@ -20,7 +20,7 @@ def _hash_list(elem_list, tvars):
 class GChoice(GType):
     def __init__(self, choices: List[GType]) -> None:
         super().__init__()
-        assert len(choices) > 1, "Choice must have at least one branch"
+        assert len(choices) >= 1, "Choice must have at least one branch"
         self.branches = choices
 
     def project(self, roles: Set[str]) -> Dict[str, LType]:
