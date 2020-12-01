@@ -58,6 +58,17 @@ class LEnd(LType):
     def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
         pass
 
+    def calc_next_states_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        next_states: Dict[str, Dict[LAction, Set[Any]]],
+        update_tvars: Dict[str, bool],
+    ):
+        pass
+
+    def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[Any]]]):
+        pass
+
     def __str__(self) -> str:
         return self.to_string("")
 

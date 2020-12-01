@@ -82,6 +82,25 @@ class LMessagePass(LType):
     def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
         self.cont.set_fst_actions_rec(fst_actions)
 
+    def calc_next_states_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        next_states: Dict[str, Dict[LAction, Set[LType]]],
+        update_tvars: Dict[str, bool],
+    ):
+        reset_values = tuple(tvar for tvar, update in update_tvars.items() if update)
+        for tvar, update in tuple(update_tvars.items()):
+            if update:
+                action_next_states = next_states[tvar].setdefault(self.action, set())
+                action_next_states.add(self.cont)
+                update_tvars[tvar] = False
+        self.cont.calc_next_states_rec(tvar_deps, next_states, update_tvars)
+        for tvar in reset_values:
+            update_tvars[tvar] = True
+
+    def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
+        self.cont.set_next_states_rec(next_states)
+
     def __str__(self) -> str:
         return self.to_string("")
 

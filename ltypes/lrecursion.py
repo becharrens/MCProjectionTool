@@ -25,11 +25,6 @@ class LRecursion(LType):
         return self.ltype.next_states_rec(tvars)
 
     def next_states(self) -> Dict[LAction, Set[LType]]:
-        if self.nxt_states is None:
-            # Compute next states (forcing computation)
-            self.nxt_states = self.ltype.next_states_rec(set())
-            # Cache next states for all local types in recursion body
-            self.ltype.next_states()
         return self.nxt_states
 
     def set_rec_ltype(self, tvar, gtype):
@@ -102,6 +97,22 @@ class LRecursion(LType):
     def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
         self.fst_actions = fst_actions[self.tvar]
         self.ltype.set_fst_actions_rec(fst_actions)
+
+    def calc_next_states_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        next_states: Dict[str, Dict[LAction, Set[LType]]],
+        update_tvars: Dict[str, bool],
+    ):
+        tvar_deps[self.tvar] = set()
+        next_states[self.tvar] = dict()
+        update_tvars[self.tvar] = True
+        self.ltype.calc_next_states_rec(tvar_deps, next_states, update_tvars)
+        del update_tvars[self.tvar]
+
+    def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
+        self.nxt_states = next_states[self.tvar]
+        self.ltype.set_next_states_rec(next_states)
 
     def __str__(self) -> str:
         return self.to_string("")

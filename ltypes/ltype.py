@@ -75,6 +75,19 @@ class LType(ABC):
     def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
         pass
 
+    @abstractmethod
+    def calc_next_states_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        next_states: Dict[str, Dict[LAction, Set[Any]]],
+        update_tvars: Dict[str, bool],
+    ):
+        pass
+
+    @abstractmethod
+    def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[Any]]]):
+        pass
+
     # @abstractmethod
     # def first_actions(self, tvars: Set[str]) -> None:
     #     pass

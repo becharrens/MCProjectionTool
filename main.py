@@ -3,6 +3,7 @@ from typing import Set, Dict
 
 from dfa.dfa import DFA
 from ltypes.laction import LAction
+from ltypes.ltype import LType
 from parser import parser as scr_parser
 import argparse
 
@@ -19,6 +20,27 @@ def compute_recursion_fst_actions(
         while tvar_queue:
             new_tvar = tvar_queue.popleft()
             tvar_fst_actions |= fst_actions[new_tvar]
+            if new_tvar not in computed:
+                new_tvars = tvar_deps[new_tvar].difference(visited)
+                tvar_queue.extend(new_tvars)
+                visited |= new_tvars
+        computed.add(tvar)
+
+
+def compute_recursion_next_states(
+    next_states: Dict[str, Dict[LAction, Set[LType]]], tvar_deps: Dict[str, Set[str]]
+):
+    computed = set()
+    for tvar, tvar_next_states in next_states.items():
+        tvar_queue = deque(tvar_deps[tvar])
+        # Compute transitive closure of tvars
+        visited = set(tvar_deps[tvar])
+        visited.add(tvar)
+        while tvar_queue:
+            new_tvar = tvar_queue.popleft()
+            for laction, nxt_states in next_states[new_tvar].items():
+                action_next_states = tvar_next_states.setdefault(laction, set())
+                action_next_states |= nxt_states
             if new_tvar not in computed:
                 new_tvars = tvar_deps[new_tvar].difference(visited)
                 tvar_queue.extend(new_tvars)
@@ -71,7 +93,17 @@ def main():
                     ltype.calc_fst_actions_rec(tvar_deps, fst_actions, update_tvars)
                     compute_recursion_fst_actions(fst_actions, tvar_deps)
                     ltype.set_fst_actions_rec(fst_actions)
-                print(f"{role}: Done")
+                print(f"fst actions: Done")
+                print("Calculating rec next_states")
+                for role, ltype in projections.items():
+                    # print(f"{role}@{protocol.protocol}:\n")
+                    next_states = {}
+                    tvar_deps = {}
+                    update_tvars = {}
+                    ltype.calc_next_states_rec(tvar_deps, next_states, update_tvars)
+                    compute_recursion_next_states(next_states, tvar_deps)
+                    ltype.set_next_states_rec(next_states)
+                print(f"next states: Done")
 
                 print("Checking projections...\n\n")
                 for ltype in projections.values():

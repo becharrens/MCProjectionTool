@@ -1,4 +1,4 @@
-from typing import Set, List, Dict, Any, Optional, Tuple
+from typing import Set, List, Dict, Optional, Tuple
 
 import ltypes
 
@@ -47,12 +47,8 @@ def hash_ltype_list(ltype_list: List[LType]) -> int:
 
 
 class LUnmergedChoice(LType):
-    uid = 0
-
     def __init__(self, role: str, projections: List[Dict[str, LType]]):
         assert len(projections) >= 1, "A choice should have at least 1 branch"
-        self.uid = LUnmergedChoice.uid
-        LUnmergedChoice.uid += 1
         self.role = role
         self.projections = projections
         self.branches = [projection[role] for projection in projections]
@@ -82,7 +78,6 @@ class LUnmergedChoice(LType):
             " - The choice must be directed: A single role must decide which branch to follow"
             " - and all the other roles must either iteract"
         )
-        print(f"Checked choice {self.uid}")
 
     def can_apply_two_roles_rule(
         self, role_fst_actions: List[Dict[str, Set[LAction]]]
@@ -583,6 +578,19 @@ class LUnmergedChoice(LType):
                 return False
         return True
 
+    def calc_next_states_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        next_states: Dict[str, Dict[LAction, Set[LType]]],
+        update_tvars: Dict[str, bool],
+    ):
+        for ltype in self.branches:
+            ltype.calc_next_states_rec(tvar_deps, next_states, update_tvars)
+
+    def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
+        for ltype in self.branches:
+            ltype.set_next_states_rec(next_states)
+
     # def is_orchestrating_role(self, role: str, all_fst_actions: Dict[str, Set[LAction]], action_ppts: Set[str],
     #                           same_behaviour_roles):
     #     for ppt in action_ppts:
@@ -608,11 +616,11 @@ class LChoice(LType):
         self.branches = branches
         self.hash_value = 0
 
-    def next_states(self) -> Dict[LAction, Set[Any]]:
+    def next_states(self) -> Dict[LAction, Set[LType]]:
         next_states = [id_choice.next_states() for id_choice in self.branches]
         return LChoice.aggregate_states(next_states)
 
-    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[Any]]:
+    def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
         next_states = [branch.next_states_rec(tvars) for branch in self.branches]
         return LChoice.aggregate_states(next_states)
 
@@ -692,6 +700,19 @@ class LChoice(LType):
     def set_fst_actions_rec(self, fst_actions: Dict[str, Set[LAction]]):
         for branch in self.branches:
             branch.set_fst_actions_rec(fst_actions)
+
+    def calc_next_states_rec(
+        self,
+        tvar_deps: Dict[str, Set[str]],
+        next_states: Dict[str, Dict[LAction, Set[LType]]],
+        update_tvars: Dict[str, bool],
+    ):
+        for ltype in self.branches:
+            ltype.calc_next_states_rec(tvar_deps, next_states, update_tvars)
+
+    def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
+        for ltype in self.branches:
+            ltype.set_next_states_rec(next_states)
 
     def __str__(self) -> str:
         return self.to_string("")
