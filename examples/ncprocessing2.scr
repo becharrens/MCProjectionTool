@@ -1,0 +1,399 @@
+global protocol Processing2(role processing, role input1, role input2, role routing) {
+    Processing_2_0. (
+		choice
+			input1->processing:packet; Processing_2_1. (
+				choice
+					input1->processing:packet; processing->routing:packet; Processing_2_1
+				or
+					input2->processing:packet; processing->routing:packet; Processing_2_1
+				or
+					processing->routing:packet; Processing_2_0
+			)
+		or
+			input2->processing:packet; Processing_2_1. (
+				choice
+					input1->processing:packet; processing->routing:packet; Processing_2_1
+				or
+					input2->processing:packet; processing->routing:packet; Processing_2_1
+				or
+					processing->routing:packet; Processing_2_0
+			)
+	)
+}
+
+global protocol Processing3(role processing, role input1, role input2, role routing) {
+    Processing_3_0. (
+		choice
+			input1->processing:packet; Processing_3_1. (
+				choice
+					input1->processing:packet; Processing_3_2. (
+						choice
+							input1->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							input2->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							processing->routing:packet; Processing_3_1
+					)
+				or
+					input2->processing:packet; Processing_3_2. (
+						choice
+							input1->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							input2->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							processing->routing:packet; Processing_3_1
+					)
+				or
+					processing->routing:packet; Processing_3_0
+			)
+		or
+			input2->processing:packet; Processing_3_1. (
+				choice
+					input1->processing:packet; Processing_3_2. (
+						choice
+							input1->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							input2->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							processing->routing:packet; Processing_3_1
+					)
+				or
+					input2->processing:packet; Processing_3_2. (
+						choice
+							input1->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							input2->processing:packet; processing->routing:packet; Processing_3_2
+						or
+							processing->routing:packet; Processing_3_1
+					)
+				or
+					processing->routing:packet; Processing_3_0
+			)
+	)
+}
+
+global protocol Processing4(role processing, role input1, role input2, role routing) {
+    Processing_4_0. (
+		choice
+			input1->processing:packet; Processing_4_1. (
+				choice
+					input1->processing:packet; Processing_4_2. (
+						choice
+							input1->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							input2->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							processing->routing:packet; Processing_4_1
+					)
+				or
+					input2->processing:packet; Processing_4_2. (
+						choice
+							input1->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							input2->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							processing->routing:packet; Processing_4_1
+					)
+				or
+					processing->routing:packet; Processing_4_0
+			)
+		or
+			input2->processing:packet; Processing_4_1. (
+				choice
+					input1->processing:packet; Processing_4_2. (
+						choice
+							input1->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							input2->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							processing->routing:packet; Processing_4_1
+					)
+				or
+					input2->processing:packet; Processing_4_2. (
+						choice
+							input1->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							input2->processing:packet; Processing_4_3. (
+								choice
+									input1->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									input2->processing:packet; processing->routing:packet; Processing_4_3
+								or
+									processing->routing:packet; Processing_4_2
+							)
+						or
+							processing->routing:packet; Processing_4_1
+					)
+				or
+					processing->routing:packet; Processing_4_0
+			)
+	)
+}
+
+global protocol Processing5(role processing, role input1, role input2, role routing) {
+    Processing_5_0. (
+		choice
+			input1->processing:packet; Processing_5_1. (
+				choice
+					input1->processing:packet; Processing_5_2. (
+						choice
+							input1->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							input2->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							processing->routing:packet; Processing_5_1
+					)
+				or
+					input2->processing:packet; Processing_5_2. (
+						choice
+							input1->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							input2->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							processing->routing:packet; Processing_5_1
+					)
+				or
+					processing->routing:packet; Processing_5_0
+			)
+		or
+			input2->processing:packet; Processing_5_1. (
+				choice
+					input1->processing:packet; Processing_5_2. (
+						choice
+							input1->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							input2->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							processing->routing:packet; Processing_5_1
+					)
+				or
+					input2->processing:packet; Processing_5_2. (
+						choice
+							input1->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							input2->processing:packet; Processing_5_3. (
+								choice
+									input1->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									input2->processing:packet; Processing_5_4. (
+										choice
+											input1->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											input2->processing:packet; processing->routing:packet; Processing_5_4
+										or
+											processing->routing:packet; Processing_5_3
+									)
+								or
+									processing->routing:packet; Processing_5_2
+							)
+						or
+							processing->routing:packet; Processing_5_1
+					)
+				or
+					processing->routing:packet; Processing_5_0
+			)
+	)
+}
