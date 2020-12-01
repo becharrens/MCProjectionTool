@@ -77,10 +77,15 @@ def main():
                     # Compute hashes for recursive constructs:
                     # - First compute a preliminary hash where all tvars return same
                     #   constant hash
+                    max_rec_depth = ltype.max_rec_depth(0)
                     ltype.hash_rec(True)
+                    for i in range(max_rec_depth - 1):
+                        ltype.hash_rec(False)
+
                     # - Recompute the hash of the recursions using their preliminary
                     #   hashes of each recursive constuct as the hash for each tvar
                     ltype.hash()
+                    pass
                     # print(str(ltype), "\n\n")
                 print("Done")
 

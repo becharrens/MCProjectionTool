@@ -67,7 +67,7 @@ class LUnmergedChoice(LType):
         assert (
             self.can_apply_two_roles_rule(role_fst_actions)
             # or self.can_apply_merge_rule(role_fst_actions)
-            or self.can_apply_directed_choice_projection(role_fst_actions)
+            # or self.can_apply_directed_choice_projection(role_fst_actions)
             or self.can_apply_partial_rules(role_fst_actions)
         ), (
             "Cannot apply projection rules. Global type must satisfy one of the following:\n"
@@ -554,6 +554,9 @@ class LUnmergedChoice(LType):
         for ltype in self.branches:
             ltype.set_next_states_rec(next_states)
 
+    def max_rec_depth(self, curr_rec_depth: int) -> int:
+        return max(branch.max_rec_depth(curr_rec_depth) for branch in self.branches)
+
     def __str__(self) -> str:
         return self.to_string("")
 
@@ -668,6 +671,9 @@ class LChoice(LType):
     def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
         for ltype in self.branches:
             ltype.set_next_states_rec(next_states)
+
+    def max_rec_depth(self, curr_rec_depth: int) -> int:
+        return max(branch.max_rec_depth(curr_rec_depth) for branch in self.branches)
 
     def __str__(self) -> str:
         return self.to_string("")

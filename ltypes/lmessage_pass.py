@@ -101,6 +101,9 @@ class LMessagePass(LType):
     def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
         self.cont.set_next_states_rec(next_states)
 
+    def max_rec_depth(self, curr_rec_depth: int) -> int:
+        return self.cont.max_rec_depth(curr_rec_depth)
+
     def __str__(self) -> str:
         return self.to_string("")
 

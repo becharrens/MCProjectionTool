@@ -88,6 +88,10 @@ class LType(ABC):
     def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[Any]]]):
         pass
 
+    @abstractmethod
+    def max_rec_depth(self, curr_rec_depth: int) -> int:
+        pass
+
     # @abstractmethod
     # def first_actions(self, tvars: Set[str]) -> None:
     #     pass

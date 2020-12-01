@@ -15,7 +15,7 @@ class LRecursion(LType):
         super().__init__()
         self.tvar = tvar
         self.ltype = ltype
-        self.update_hash = True
+        # self.update_hash = True
         self.ltype.set_rec_ltype(self.tvar, self)
         self.fst_actions: Optional[Set[LAction]] = None
         self.hash_value: Optional[int] = None
@@ -38,11 +38,11 @@ class LRecursion(LType):
         return self.ltype.first_actions_rec(tvars)
 
     def hash(self) -> int:
-        if self.update_hash:
-            # Compute hash (forcing computation)
-            self.update_hash = False
-            self.hash_value = hash_rec(self.ltype.hash_rec(False))
-            # Cache hash values for all local types in body
+        # if self.update_hash:
+        #     # Compute hash (forcing computation)
+        #     self.update_hash = False
+        #     self.hash_value = hash_rec(self.ltype.hash_rec(False))
+        #     # Cache hash values for all local types in body
         return self.hash_value
 
     # Use string hash
@@ -113,6 +113,9 @@ class LRecursion(LType):
     def set_next_states_rec(self, next_states: Dict[str, Dict[LAction, Set[LType]]]):
         self.nxt_states = next_states[self.tvar]
         self.ltype.set_next_states_rec(next_states)
+
+    def max_rec_depth(self, curr_rec_depth: int) -> int:
+        return self.ltype.max_rec_depth(curr_rec_depth + 1)
 
     def __str__(self) -> str:
         return self.to_string("")
