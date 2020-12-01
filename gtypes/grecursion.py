@@ -24,7 +24,8 @@ class GRecursion(GType):
         }
 
     def set_rec_gtype(self, tvar: str, gtype: GType) -> None:
-        assert tvar != self.tvar, "Duplicate TVar"
+        # TODO: Fix tvars
+        # assert tvar != self.tvar, "Duplicate TVar"
         self.gtype.set_rec_gtype(tvar, gtype)
 
     def first_actions(self, tvars: Set[str]) -> Set[GAction]:
@@ -51,13 +52,19 @@ class GRecursion(GType):
     def ensure_unique_tvars(
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):
+        old_name = None
+        old_tvar = self.tvar
         if self.tvar in tvar_names:
             new_tvar, uid = GType.unique_tvar(self.tvar, tvar_names, uid)
+            old_name = tvar_mapping[self.tvar]
             tvar_mapping[self.tvar] = new_tvar
             self.tvar = new_tvar
         else:
             tvar_names.add(self.tvar)
+            tvar_mapping[self.tvar] = self.tvar
         self.gtype.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
+        if old_name is not None:
+            tvar_mapping[old_tvar] = old_name
 
     def __str__(self) -> str:
         return self.to_string("")
