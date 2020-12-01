@@ -51,7 +51,7 @@ def main():
                 }
 
                 for role, ltype in projections.items():
-                    print(f"{role}@{protocol.protocol}:\n")
+                    # print(f"{role}@{protocol.protocol}:\n")
                     # Compute hashes for recursive constructs:
                     # - First compute a preliminary hash where all tvars return same
                     #   constant hash
@@ -60,17 +60,18 @@ def main():
                     #   hashes of each recursive constuct as the hash for each tvar
                     ltype.hash()
                     # print(str(ltype), "\n\n")
+                print("Done")
 
                 print("Calculating rec first actions")
                 for role, ltype in projections.items():
-                    print(f"{role}@{protocol.protocol}:\n")
+                    # print(f"{role}@{protocol.protocol}:\n")
                     fst_actions = {}
                     tvar_deps = {}
                     update_tvars = {}
                     ltype.calc_fst_actions_rec(tvar_deps, fst_actions, update_tvars)
                     compute_recursion_fst_actions(fst_actions, tvar_deps)
                     ltype.set_fst_actions_rec(fst_actions)
-                    print(f"{role}: Done")
+                print(f"{role}: Done")
 
                 print("Checking projections...\n\n")
                 for ltype in projections.values():
@@ -82,7 +83,7 @@ def main():
                     dfa = DFA(ltype)
                     new_ltype = dfa.translate()
                     print(f"{role}@{protocol.protocol}:\n")
-                    # print(str(new_ltype), "\n\n")
+                    print(str(new_ltype), "\n\n")
                 print("\n\n=============================>\n")
             except Exception as e:
                 name = "@".join([x for x in [role, proto_name] if x is not None])

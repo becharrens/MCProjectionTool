@@ -75,7 +75,7 @@ class LMessagePass(LType):
             if update:
                 fst_actions[tvar].add(self.action)
                 update_tvars[tvar] = False
-            self.cont.calc_fst_actions_rec(tvar_deps, fst_actions, update_tvars)
+        self.cont.calc_fst_actions_rec(tvar_deps, fst_actions, update_tvars)
         for tvar in reset_values:
             update_tvars[tvar] = True
 
