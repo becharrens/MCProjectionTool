@@ -52,10 +52,30 @@ class TreeToGType(Transformer):
         tvar, gtype = values
         return GRecursion(tvar, gtype)
 
-    def message_transfer(self, values):
-        sender, recv, payload, cont = values
-        action = GAction([sender, recv], payload)
+    # def message_transfer(self, values):
+    def message_transfer(self, args):
+        sender, recv, payload, cont = args
+        label, payload_fields = payload
+        action = GAction([sender, recv], label, payload_fields)
         return GMessagePass(action, cont)
+
+    def payload(self, args):
+        if len(args) == 1:
+            payload_type = args[0]
+            return None, payload_type
+        payload_name, payload_type = args
+        return payload_name, payload_type
+
+    def payload_decl(self, payload_fields):
+        return payload_fields
+
+    def labelled_message(self, args):
+        if len(args) == 1:
+            label = args[0]
+            return label, None
+        else:
+            label, payloads = args
+            return label, payloads
 
     def choice(self, values):
         return GChoice(values)

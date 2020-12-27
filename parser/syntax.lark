@@ -10,7 +10,10 @@ interaction: message_transfer
    | END
    | tvar
 
-message_transfer: CNAME "->" CNAME ":" WORD ";" interaction
+payload: CNAME (":" CNAME)?
+payload_decl: "(" payload ("," payload)* ")"
+labelled_message: CNAME (payload_decl)?
+message_transfer: CNAME "->" CNAME ":" labelled_message ";" interaction
 recursion: "rec" CNAME "{" interaction "}"
 choice: "choice" "{" interaction "}" ("or" "{" interaction "}")*
 END: "end"
