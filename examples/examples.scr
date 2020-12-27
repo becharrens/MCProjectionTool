@@ -1,3 +1,7 @@
+global protocol LabelledMessages(role a, role b) {
+    a->b:M(x: int, int); end
+}
+
 
 global protocol Test1(role a, role b, role c) {
     rec X {
@@ -383,4 +387,23 @@ global protocol P3(role a, role b, role c, role d) {
             c->d:U; continue t
         }
     }
+}
+
+global protocol RecTest1(role X, role Y) {
+  rec SEND {
+    choice{
+      X->Y:m;
+      continue SEND
+    } or {
+      X->Y:n;
+      rec SEND2 {
+        X->Y:end;
+        choice {
+          continue SEND
+        } or {
+          continue SEND2
+        }
+      }
+    }
+  }
 }

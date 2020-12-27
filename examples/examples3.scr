@@ -1,5 +1,5 @@
 
-global protocol Test(role a,role b, role c) {
+global protocol InvalidTest(role a,role b, role c) {
     /*
     Invalid: 'a' can think b1 was chosen even if b2 starts
     executing
@@ -17,4 +17,4 @@ global protocol Test(role a,role b, role c) {
     }
 }
 
-// a->c + a->b
+/* a->c + a->b */
