@@ -1,4 +1,6 @@
-from typing import Set, List, Dict, Optional, Tuple
+import itertools
+from abc import abstractmethod, ABC
+from typing import Set, List, Dict, Optional, Tuple, Iterable, Any, cast, FrozenSet
 
 import ltypes
 
@@ -46,6 +48,148 @@ def hash_ltype_list(ltype_list: List[LType]) -> int:
 #     return new_next_states
 
 
+def two_communicating_roles(
+    actions: Dict[str, Set[LAction]], leaders: Set[str]
+) -> bool:
+    l1, l2 = tuple(leaders)
+    l1_ppts = {action.get_participant() for action in actions[l1]}
+    l2_ppts = {action.get_participant() for action in actions[l2]}
+    return l1_ppts == {l2} and l2_ppts == {l1}
+
+
+def all_actions_in_partition(
+    p: FrozenSet[int], branches: Dict[str, List[LType]]
+) -> Tuple[Set[str], Dict[str, Set[LAction]]]:
+    all_actions = {}
+    leaders: Set[str] = set()
+    for role, ltypes in branches.items():
+        actions = set()
+        for idx in p:
+            first_actions = ltypes[idx].first_actions()
+            not_equal_actions = actions and first_actions != actions
+            if not actions or not_equal_actions:
+                actions = actions.union(first_actions)
+            if not_equal_actions:
+                leaders.add(role)
+        all_actions[role] = actions
+    return leaders, all_actions
+
+
+def proj_condition(leaders: Set[str], actions: Dict[str, Set[LAction]]) -> bool:
+    num_leaders = len(leaders)
+    if num_leaders < 2:
+        return True
+    if num_leaders == 2:
+        return two_communicating_roles(actions, leaders)
+
+
+def can_be_merged(
+    p1: FrozenSet[int], p2: FrozenSet[int], branches: Dict[str, List[LType]]
+) -> Tuple[bool, Set[str], Dict[str, Set[LAction]], Set[str], Dict[str, Set[LAction]]]:
+    p1_leaders, p1_actions = all_actions_in_partition(p1, branches)
+    p2_leaders, p2_actions = all_actions_in_partition(p2, branches)
+
+    diff_roles = set()
+    for role, actions in p1_actions.items():
+        if actions != p2_actions[role]:
+            diff_roles.add(role)
+            if len(diff_roles) == 2:
+                r1, r2 = tuple(diff_roles)
+                r1_actions = p1_actions[r1].union(p2_actions[r1])
+                r2_actions = p1_actions[r2].union(p2_actions[r2])
+                r1_ppts = {action.get_participant() for action in r1_actions}
+                r2_ppts = {action.get_participant() for action in r2_actions}
+                if not (r1_ppts == {r2} and r2_ppts == {r1}):
+                    return False, p1_leaders, p1_actions, p2_leaders, p2_actions
+            elif len(diff_roles) > 2:
+                return False, p1_leaders, p1_actions, p2_leaders, p2_actions
+
+    return True, p1_leaders, p1_actions, p2_leaders, p2_actions
+
+
+class AbsPartition(ABC):
+    @abstractmethod
+    def is_valid(self, computed_partitions: Dict[Any, bool]):
+        pass
+
+    @abstractmethod
+    def satisfies_proj_property(self) -> bool:
+        pass
+
+    @abstractmethod
+    def partitions(self) -> Iterable:
+        pass
+
+
+class Partition(AbsPartition):
+    def __init__(
+        self,
+        branches: Dict[str, List[LType]],
+        indices: FrozenSet[int],
+        role_actions: Dict[str, Set[LAction]],
+        leaders: Set[str],
+    ):
+        self.branches = branches
+        self.indices = indices
+        self.can_be_projected = proj_condition(leaders, role_actions)
+
+    def satisfies_proj_property(self):
+        return self.can_be_projected
+
+    def partitions(self) -> Iterable[Tuple[AbsPartition, AbsPartition]]:
+        idx_list = list(self.indices)
+        n = len(self.indices)
+        first_iter = True
+        for partition in itertools.product([False, True], repeat=n - 1):
+            if first_iter:
+                # Ignore partition 0,0, ... ,0
+                first_iter = False
+                continue
+            p1 = frozenset.union(
+                frozenset(
+                    idx_list[i + 1] for i, in_p2 in enumerate(partition) if not in_p2
+                ),
+                frozenset((idx_list[0],)),
+            )
+
+            p2 = frozenset(
+                idx_list[i + 1] for i, in_p2 in enumerate(partition) if in_p2
+            )
+
+            can_merge, p1_leaders, p1_actions, p2_leaders, p2_actions = can_be_merged(
+                p1, p2, self.branches
+            )
+            if can_merge:
+                partition1 = Partition(self.branches, p1, p1_actions, p1_leaders)
+                partition2 = Partition(self.branches, p2, p2_actions, p2_leaders)
+                yield partition1, partition2
+        return
+
+    def is_valid(self, computed_partitions: Dict[AbsPartition, bool]) -> bool:
+        if self in computed_partitions:
+            return computed_partitions[self]
+
+        if self.satisfies_proj_property():
+            computed_partitions[self] = True
+            return True
+
+        for p1, p2 in self.partitions():
+            if p1.is_valid(computed_partitions) and p2.is_valid(computed_partitions):
+                computed_partitions[self] = True
+                return True
+        computed_partitions[self] = False
+        return False
+
+    def __hash__(self) -> int:
+        return self.indices.__hash__()
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, Partition):
+            return False
+
+        return o.indices == self.indices
+
+
 class LUnmergedChoice(LType):
     def __init__(self, role: str, projections: List[Dict[str, LType]]):
         assert len(projections) >= 1, "A choice should have at least 1 branch"
@@ -66,9 +210,11 @@ class LUnmergedChoice(LType):
         self.ensure_consistent_choice(role_fst_actions)
         assert (
             self.can_apply_two_roles_rule(role_fst_actions)
-            # or self.can_apply_merge_rule(role_fst_actions)
+            or self.can_apply_merge_rule(role_fst_actions)
             # or self.can_apply_directed_choice_projection(role_fst_actions)
-            or self.can_apply_partial_rules(role_fst_actions)
+            # or self.can_apply_partial_rules(role_fst_actions)
+            or self.can_apply_partition_projection()
+            # self.can_apply_interleavings_rule()
         ), (
             "Cannot apply projection rules. Global type must satisfy one of the following:\n"
             " - At most one role can have a different behaviour across all branches\n "
@@ -329,7 +475,8 @@ class LUnmergedChoice(LType):
     ):
         for role_subset in role_subsets:
             if not self.is_directed_choice(role_fst_actions, role_subset):
-                return False
+                # return True
+                return True
         return True
 
     def is_valid_composition_of_directed_choices(
@@ -369,7 +516,114 @@ class LUnmergedChoice(LType):
             role_subsets, role_fst_actions
         )
 
-    def action_participants(self, local_actions: Set[LAction]):
+    # def clasify_roles(
+    #     self,
+    #     role_fst_actions: List[Dict[str, Set[LAction]]],
+    #     all_fst_actions: Dict[str, Set[LAction]],
+    # ) -> Dict[str, Set[LAction]]:
+    #     same_behaviour_roles = {
+    #         role
+    #         for role, fst_actions in all_fst_actions.items()
+    #         if self.same_behaviour_role(role, role_fst_actions, fst_actions)
+    #     }
+    #
+    #     # Map every directed role to the role with which it interacts
+    #     # If two roles interact with each other and one has the same behaviour across
+    #     # all branches, so will the other.
+    #     # Also, with the trace equivalence restriction, if a role interacts first with
+    #     # a role which has the same behaviour across all branches, this role should
+    #     # also have the same behaviour across all branches.
+    #     directed_behaviour_roles = {
+    #         role: next(iter(self.action_participants(fst_actions)))
+    #         for role, fst_actions in all_fst_actions.items()
+    #         if role not in same_behaviour_roles
+    #         and self.directed_behaviour_role(fst_actions)
+    #     }
+    #
+    #     roles_to_verify = {
+    #         role: fst_actions
+    #         for role, fst_actions in all_fst_actions.items()
+    #         if role not in same_behaviour_roles
+    #         and (
+    #             role not in directed_behaviour_roles
+    #             or directed_behaviour_roles[role] in directed_behaviour_roles
+    #         )
+    #     }
+    #
+    #     return roles_to_verify
+
+    # def create_action_mapping(
+    #     self, role_fst_actions: List[Dict[str, Set[LAction]]]
+    # ) -> Dict[str, Dict[LAction, Set[int]]]:
+    #     branch_mapping = {}
+    #     for i, proj_fst_actions in enumerate(role_fst_actions):
+    #         for role, fst_actions in proj_fst_actions.items():
+    #             role_action_mapping: Dict[
+    #                 LAction, Set[int]
+    #             ] = branch_mapping.setdefault(role, dict())
+    #             for action in fst_actions:
+    #                 action_branches: Set[int] = role_action_mapping.setdefault(
+    #                     action, set()
+    #                 )
+    #                 action_branches.add(i)
+    #
+    #     return branch_mapping
+
+    # def can_apply_interleavings_rule(self):
+    # ERROR: DOES NOT WORK!!!
+
+    #     role_fst_actions = [
+    #         {role: ltype.first_actions() for role, ltype in branch_projection.items()}
+    #         for branch_projection in self.projections
+    #     ]
+    #     all_fst_actions = self.get_all_fst_actions(role_fst_actions)
+    #     roles_to_verify = self.clasify_roles(role_fst_actions, all_fst_actions)
+    #     if len(roles_to_verify) < 3:
+    #         return True
+    #     role_order = tuple(roles_to_verify.keys())
+    #     roles = {role: idx for idx, role in enumerate(role_order)}
+    #     role_actions = tuple(roles_to_verify[role] for role in role_order)
+    #     action_branch_mapping = self.create_action_mapping(role_fst_actions)
+    #
+    #     for action_combination in itertools.product(*role_actions, repeat=1):
+    #         is_valid_combination = True
+    #
+    #         for idx, action in enumerate(action_combination):
+    #             participant = action.get_participant()
+    #             if participant in roles_to_verify:
+    #                 participant_idx = roles[participant]
+    #                 ppt_action = action_combination[participant_idx]
+    #                 # It is not possible for two roles to perform first actions which involve each other
+    #                 # when the actions are not duals of one another
+    #                 if (
+    #                     ppt_action.get_participant() == role_order[idx]
+    #                     and ppt_action.dual() != action
+    #                 ):
+    #                     is_valid_combination = False
+    #                     break
+    #         if is_valid_combination:
+    #             common_branches = set(range(len(role_fst_actions)))
+    #             for idx, action in enumerate(action_combination):
+    #                 role = role_order[idx]
+    #                 common_branches &= action_branch_mapping[role][action]
+    #                 if len(common_branches) == 0:
+    #                     return False
+    #     return True
+
+    def can_apply_partition_projection(self):
+        partition_indices = frozenset(range(len(self.branches)))
+        choice_proj: Dict[str, List[LType]] = cast(Dict[str, List[LType]], dict())
+        for projections in self.projections:
+            for role, projection in projections.items():
+                proj = choice_proj.setdefault(role, [])
+                proj.append(projection)
+        leaders, all_fst_actions = all_actions_in_partition(
+            partition_indices, choice_proj
+        )
+        partition = Partition(choice_proj, partition_indices, all_fst_actions, leaders)
+        return partition.is_valid(dict())
+
+    def action_participants(self, local_actions: Set[LAction]) -> Set[str]:
         return {action.get_participant() for action in local_actions}
 
     def ensure_consistent_choice(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
@@ -541,6 +795,9 @@ class LUnmergedChoice(LType):
                 return False
         return True
 
+    def directed_behaviour_role(self, role_fst_actions):
+        return len(self.action_participants(role_fst_actions)) == 1
+
     def calc_next_states_rec(
         self,
         tvar_deps: Dict[str, Set[str]],
@@ -685,3 +942,79 @@ class LChoice(LType):
 
     def __hash__(self):
         return self.hash()
+
+    # def check_nc_choice(role_fst_actions: List[Dict[str, Set[LAction]]]):
+    #     all_fst_actions: Dict[str, Set[LAction]] = {
+    #         role: {
+    #             action
+    #             for branch_fst_actions in role_fst_actions
+    #             for action in branch_fst_actions[role]
+    #         }
+    #         for role in role_fst_actions[0]
+    #     }
+    # other_roles = {"processing": "routing", "routing": "processing"}
+    # common_actions = {
+    #     r1: {
+    #         action
+    #         for action in all_fst_actions[r1]
+    #         if action.dual() in all_fst_actions[other_roles[r1]]
+    #     }
+    #     for r1 in other_roles
+    # }
+    # # Check actions which are not common to both roles
+    # for role in other_roles:
+    #     for action in all_fst_actions[role]:
+    #         if action not in common_actions[role]:
+    #             for other_action in all_fst_actions[other_roles[role]]:
+    #                 # if other_action.get_participant() != role:
+    #                 found_branch = False
+    #                 for branch_fst_actions in role_fst_actions:
+    #                     if (
+    #                         action in branch_fst_actions[role]
+    #                         and other_action in branch_fst_actions[other_roles[role]]
+    #                     ):
+    #                         found_branch = True
+    #                         break
+    #                 if not found_branch:
+    #                     return False
+    # # Check common actions
+    # for r, common_fst_actions in common_actions.items():
+    #     for action in common_fst_actions:
+    #         found_branch = False
+    #         for branch_fst_actions in role_fst_actions:
+    #             r1_fst_actions = branch_fst_actions[r]
+    #             r2_fst_actions = branch_fst_actions[other_roles[r]]
+    #             if (
+    #                 action in r1_fst_actions
+    #                 and action.dual() in r2_fst_actions
+    #                 and len(r1_fst_actions) == 1
+    #                 and len(r2_fst_actions) == 1
+    #             ):
+    #                 found_branch = True
+    #                 break
+    #         if not found_branch:
+    #             return False
+    #     break
+    # for action in all_fst_actions["processing"]:
+    #     for action2 in all_fst_actions["routing"]:
+    #         found_branch = False
+    #         if (
+    #             action.get_participant() == "routing"
+    #             and action2.get_participant() == "processing"
+    #             and action.dual() != action2
+    #         ):
+    #             continue
+    #         for branch_fst_actions in role_fst_actions:
+    #             r1_fst_actions = branch_fst_actions["processing"]
+    #             r2_fst_actions = branch_fst_actions["routing"]
+    #             if action in r1_fst_actions and action2 in r2_fst_actions:
+    #                 if action.dual() != action2 or (
+    #                     action.dual() == action2
+    #                     and len(r1_fst_actions) == 1
+    #                     and len(r2_fst_actions) == 1
+    #                 ):
+    #                     found_branch = True
+    #                     break
+    #         if not found_branch:
+    #             return False
+    # return True
