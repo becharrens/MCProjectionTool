@@ -37,7 +37,7 @@ class LMessagePass(LType):
             self.hash_value = hash_msg_pass(self.action.hash(), self.cont.hash())
         return self.hash_value
 
-    def hash_rec(self, const_tvar_hash) -> int:
+    def hash_rec(self, const_tvar_hash: bool = False) -> int:
         return hash_msg_pass(self.action.hash(), self.cont.hash_rec(const_tvar_hash))
 
     def to_string(self, indent: str) -> str:

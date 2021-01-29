@@ -56,7 +56,7 @@ class LAction:
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, LAction):
             return False
-        return self.__hash__() == o.__hash__()
+        return self.__str__() == o.__str__()
 
     def __hash__(self) -> int:
         return self.hash()

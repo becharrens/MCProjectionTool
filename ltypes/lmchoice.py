@@ -17,7 +17,7 @@ def hash_list(hashes: List[int]) -> int:
     return res
 
 
-def hash_ltype_list_rec(ltype_list, const_tvar_hash: bool) -> int:
+def hash_ltype_list_rec(ltype_list, const_tvar_hash: bool = False) -> int:
     hashes = list(set(elem.hash_rec(const_tvar_hash) for elem in ltype_list))
     return hash_list(hashes) % ltypes.HASH_SIZE
 
@@ -57,6 +57,58 @@ def two_communicating_roles(
     return l1_ppts == {l2} and l2_ppts == {l1}
 
 
+def behaviour_partition(
+    actions: Dict[str, Set[LAction]],
+    branches: Dict[str, List[LType]],
+    leaders: Set[str],
+):
+    """
+    'Pure' behaviour partition - if r1 has partial behaviour, r2 must have full behaviour, and vice versa
+    """
+    assert (
+        len(leaders) == 2
+    ), "Behaviour partition condition should only be checked if two roles have different behaviours"
+    roles = list(leaders)
+    for i, r1 in enumerate(roles):
+        r2 = roles[1 - i]
+        for j, r1_ltype in enumerate(branches[r1]):
+            r2_ltype = branches[r2][j]
+            if (
+                actions[r1] != r1_ltype.first_actions()
+                and actions[r2] != r2_ltype.first_actions()
+            ):
+                return False
+
+
+def behaviour_partition2(
+    actions: Dict[str, Set[LAction]],
+    branches: Dict[str, List[LType]],
+    leaders: Set[str],
+):
+    """
+    Ensure that all possible combinations of actions for the two different roles are possible
+    Not sure if this condition is sound
+    """
+    assert (
+        len(leaders) == 2
+    ), "Behaviour partition condition should only be checked if two roles have different behaviours"
+    r1, r2 = tuple(leaders)
+    action_combinations: Dict[LAction, Set[LAction]] = {}
+    for i, r1_ltype in enumerate(branches[r1]):
+        r2_ltype = branches[r2][i]
+        r1_actions = r1_ltype.first_actions()
+        r2_actions = r2_ltype.first_actions()
+        for r1_action in r1_actions:
+            combinations = action_combinations.setdefault(r1_action, set())
+            combinations |= r2_actions
+
+    n_possible_combinations = len(actions[r1]) * len(actions[r2])
+    n_combinations = sum(
+        len(other_actions) for other_actions in action_combinations.values()
+    )
+    return n_combinations == n_possible_combinations
+
+
 def all_actions_in_partition(
     p: FrozenSet[int], branches: Dict[str, List[LType]]
 ) -> Tuple[Set[str], Dict[str, Set[LAction]]]:
@@ -68,18 +120,27 @@ def all_actions_in_partition(
             first_actions = ltypes[idx].first_actions()
             not_equal_actions = actions and first_actions != actions
             if not actions or not_equal_actions:
+                # Add new actions
                 actions = actions.union(first_actions)
             if not_equal_actions:
+                # If different behaviour across branches, label role as 'leader'
                 leaders.add(role)
         all_actions[role] = actions
     return leaders, all_actions
 
 
-def proj_condition(leaders: Set[str], actions: Dict[str, Set[LAction]]) -> bool:
+def proj_condition(
+    leaders: Set[str],
+    branches: Dict[str, List[LType]],
+    actions: Dict[str, Set[LAction]],
+) -> bool:
     num_leaders = len(leaders)
     if num_leaders < 2:
         return True
     if num_leaders == 2:
+        # if behaviour_partition(actions, branches, leaders):
+        if behaviour_partition2(actions, branches, leaders):
+            return True
         return two_communicating_roles(actions, leaders)
 
 
@@ -94,6 +155,8 @@ def can_be_merged(
         if actions != p2_actions[role]:
             diff_roles.add(role)
             if len(diff_roles) == 2:
+                # If there are two roles with different overall behaviours across partitions,
+                # They must only be interacting with one another
                 r1, r2 = tuple(diff_roles)
                 r1_actions = p1_actions[r1].union(p2_actions[r1])
                 r2_actions = p1_actions[r2].union(p2_actions[r2])
@@ -131,7 +194,13 @@ class Partition(AbsPartition):
     ):
         self.branches = branches
         self.indices = indices
-        self.can_be_projected = proj_condition(leaders, role_actions)
+        partition_branches: Dict[str, List[LType]] = {
+            role: [role_branches[idx] for idx in self.indices]
+            for role, role_branches in branches.items()
+        }
+        self.can_be_projected = proj_condition(
+            leaders, partition_branches, role_actions
+        )
 
     def satisfies_proj_property(self):
         return self.can_be_projected
@@ -214,7 +283,6 @@ class LUnmergedChoice(LType):
             # or self.can_apply_directed_choice_projection(role_fst_actions)
             # or self.can_apply_partial_rules(role_fst_actions)
             or self.can_apply_partition_projection()
-            # self.can_apply_interleavings_rule()
         ), (
             "Cannot apply projection rules. Global type must satisfy one of the following:\n"
             " - At most one role can have a different behaviour across all branches\n "
@@ -665,7 +733,7 @@ class LUnmergedChoice(LType):
             self.hash_value = hash_ltype_list(self.branches)
         return self.hash_value
 
-    def hash_rec(self, const_tvar_hash) -> int:
+    def hash_rec(self, const_tvar_hash: bool = False) -> int:
         return hash_ltype_list_rec(self.branches, const_tvar_hash)
 
     def normalise(self) -> LType:
@@ -865,7 +933,7 @@ class LChoice(LType):
             self.hash_value = hash_ltype_list(self.branches)
         return self.hash_value
 
-    def hash_rec(self, const_tvar_hash: bool) -> int:
+    def hash_rec(self, const_tvar_hash: bool = False) -> int:
         return hash_ltype_list_rec(self.branches, const_tvar_hash)
 
     def to_string(self, indent: str) -> str:

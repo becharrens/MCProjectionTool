@@ -42,7 +42,7 @@ class LRecVar(LType):
         # its hash already
         return self.ltype.hash()
 
-    def hash_rec(self, const_tvar_hash) -> int:
+    def hash_rec(self, const_tvar_hash: bool = False) -> int:
         if const_tvar_hash:
             return hash("tvar") % HASH_SIZE
         return self.hash()

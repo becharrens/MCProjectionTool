@@ -46,7 +46,7 @@ class LRecursion(LType):
         return self.hash_value
 
     # Use string hash
-    def hash_rec(self, const_tvar_hash):
+    def hash_rec(self, const_tvar_hash: bool = False):
         self.hash_value = hash_rec(self.ltype.hash_rec(const_tvar_hash))
         return self.hash_value
 
