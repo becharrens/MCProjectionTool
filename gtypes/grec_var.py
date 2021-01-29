@@ -1,4 +1,4 @@
-from typing import Set, Dict, Tuple
+from typing import Set, Dict, Tuple, List, Optional
 
 import gtypes
 from gtypes import HASH_SIZE
@@ -50,6 +50,11 @@ class GRecVar(GType):
     ):
         if self.tvar in tvar_mapping:
             self.tvar = tvar_mapping[self.tvar]
+
+    def ensure_consistent_payloads(
+        self, payload_mapping: Dict[str, List[Tuple[Optional[str], str]]]
+    ) -> None:
+        pass
 
     def __str__(self) -> str:
         return self.to_string("")

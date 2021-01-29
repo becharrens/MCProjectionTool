@@ -1,4 +1,4 @@
-from typing import Set, Dict, Tuple
+from typing import Set, Dict, Tuple, List, Optional
 
 from gtypes.gaction import GAction
 from gtypes.gtype import GType
@@ -51,6 +51,9 @@ class GEnd(GType):
         pass
 
     def set_rec_fst_global_actions(self, rec_gactions: Dict[str, Set[GAction]]):
+        pass
+
+    def ensure_consistent_payloads(self, payload_mapping: Dict[str, List[Tuple[Optional[str], str]]]) -> None:
         pass
 
     def __str__(self) -> str:

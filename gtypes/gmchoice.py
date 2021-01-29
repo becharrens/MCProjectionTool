@@ -1,4 +1,4 @@
-from typing import Dict, Set, List, Tuple
+from typing import Dict, Set, List, Tuple, Optional
 
 import gtypes
 from gtypes.gaction import GAction
@@ -12,8 +12,8 @@ from ltypes.ltype import LType
 # from unionfind.unionfind import UnionFind
 
 
-def _hash_list(elem_list, tvars):
-    hashes = tuple(elem.hash_rec(False) for elem in elem_list)
+def _hash_list(elem_list: List[GType], tvars):
+    hashes = set(elem.hash(tvars) for elem in elem_list)
     return sum(hashes) % gtypes.HASH_SIZE
 
 
@@ -60,6 +60,12 @@ class GChoice(GType):
     ):
         for branch in self.branches:
             branch.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
+
+    def ensure_consistent_payloads(
+        self, payload_mapping: Dict[str, List[Tuple[Optional[str], str]]]
+    ) -> None:
+        for branch in self.branches:
+            branch.ensure_consistent_payloads(payload_mapping)
 
     def __eq__(self, other):
         if not isinstance(other, GChoice):

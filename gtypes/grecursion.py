@@ -1,4 +1,4 @@
-from typing import Set, Dict, Tuple
+from typing import Set, Dict, Tuple, List, Optional
 
 import gtypes
 from gtypes.gaction import GAction
@@ -65,6 +65,11 @@ class GRecursion(GType):
         self.gtype.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
         if old_name is not None:
             tvar_mapping[old_tvar] = old_name
+
+    def ensure_consistent_payloads(
+        self, payload_mapping: Dict[str, List[Tuple[Optional[str], str]]]
+    ) -> None:
+        self.gtype.ensure_consistent_payloads(payload_mapping)
 
     def __str__(self) -> str:
         return self.to_string("")

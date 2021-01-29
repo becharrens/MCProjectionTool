@@ -1,4 +1,4 @@
-from typing import Set, Dict, Tuple
+from typing import Set, Dict, Tuple, List, Optional
 
 import gtypes
 from gtypes.gaction import GAction
@@ -63,6 +63,17 @@ class GMessagePass(GType):
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):
         self.cont.ensure_unique_tvars(tvar_mapping, tvar_names, uid)
+
+    def ensure_consistent_payloads(
+        self, payload_mapping: Dict[str, List[Tuple[Optional[str], str]]]
+    ) -> None:
+        label = self.action.get_label()
+        payloads = self.action.get_payloads()
+        msg_payloads = payload_mapping.setdefault(label, payloads)
+        assert (
+            msg_payloads == payloads
+        ), f"Inconsistent use of label {label}: {payloads} vs {msg_payloads}"
+        self.cont.ensure_consistent_payloads(payload_mapping)
 
     def __str__(self) -> str:
         return self.to_string("")

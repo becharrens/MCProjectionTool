@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Dict, Set, Tuple, Deque
+from typing import Dict, Set, Tuple, Deque, List, Optional
 
 from gtypes.gaction import GAction
 from ltypes.laction import LAction
@@ -43,6 +43,13 @@ class GType(ABC):
     def ensure_unique_tvars(
         self, tvar_mapping: Dict[str, str], tvar_names: Set[str], uid: int
     ):
+        pass
+
+    @abstractmethod
+    def ensure_consistent_payloads(
+        self, payload_mapping: Dict[str, List[Tuple[Optional[str], str]]]
+    ) -> None:
+        """UNUSED"""
         pass
 
     @staticmethod
