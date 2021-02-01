@@ -16,3 +16,9 @@ class NotTraceEquivalent(Exception):
     cannot be trace equivalent"""
 
     pass
+
+
+class Violation(Exception):
+    """When an unreachable state has been reached"""
+
+    pass

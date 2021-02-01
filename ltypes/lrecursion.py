@@ -1,6 +1,7 @@
 from typing import Set, Tuple, Dict, Type, cast, Optional, Any, List
 
 import ltypes
+from codegen.codegen import CodeGen
 from gtypes.gtype import GType
 from ltypes.laction import LAction
 from ltypes.ltype import LType
@@ -116,6 +117,12 @@ class LRecursion(LType):
 
     def max_rec_depth(self, curr_rec_depth: int) -> int:
         return self.ltype.max_rec_depth(curr_rec_depth + 1)
+
+    def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        impl = self.ltype.gen_code(role, CodeGen.incr_indent(indent), env)
+
+        # Assumes recursive variables are globally unique
+        return CodeGen.labelled_for_loop(indent, self.tvar, impl)
 
     def __str__(self) -> str:
         return self.to_string("")

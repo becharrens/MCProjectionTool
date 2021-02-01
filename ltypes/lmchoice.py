@@ -3,9 +3,11 @@ from abc import abstractmethod, ABC
 from typing import Set, List, Dict, Optional, Tuple, Iterable, Any, cast, FrozenSet
 
 import ltypes
-
+from codegen.codegen import CodeGen, ROLE, ENV, PKG_MESSAGES
+from errors.errors import Violation
 
 from ltypes.laction import LAction
+from ltypes.lmessage_pass import LMessagePass
 from ltypes.ltype import LType
 from unionfind.unionfind import UnionFind
 
@@ -138,10 +140,11 @@ def proj_condition(
     if num_leaders < 2:
         return True
     if num_leaders == 2:
-        # if behaviour_partition(actions, branches, leaders):
-        if behaviour_partition2(actions, branches, leaders):
+        # return behaviour_partition2(actions, branches, leaders)
+        if behaviour_partition(actions, branches, leaders):
             return True
         return two_communicating_roles(actions, leaders)
+    return False
 
 
 def can_be_merged(
@@ -154,17 +157,17 @@ def can_be_merged(
     for role, actions in p1_actions.items():
         if actions != p2_actions[role]:
             diff_roles.add(role)
-            if len(diff_roles) == 2:
-                # If there are two roles with different overall behaviours across partitions,
-                # They must only be interacting with one another
-                r1, r2 = tuple(diff_roles)
-                r1_actions = p1_actions[r1].union(p2_actions[r1])
-                r2_actions = p1_actions[r2].union(p2_actions[r2])
-                r1_ppts = {action.get_participant() for action in r1_actions}
-                r2_ppts = {action.get_participant() for action in r2_actions}
-                if not (r1_ppts == {r2} and r2_ppts == {r1}):
-                    return False, p1_leaders, p1_actions, p2_leaders, p2_actions
-            elif len(diff_roles) > 2:
+            # if len(diff_roles) == 2:
+            #     # If there are two roles with different overall behaviours across partitions,
+            #     # They must only be interacting with one another
+            #     r1, r2 = tuple(diff_roles)
+            #     r1_actions = p1_actions[r1].union(p2_actions[r1])
+            #     r2_actions = p1_actions[r2].union(p2_actions[r2])
+            #     r1_ppts = {action.get_participant() for action in r1_actions}
+            #     r2_ppts = {action.get_participant() for action in r2_actions}
+            #     if not (r1_ppts == {r2} and r2_ppts == {r1}):
+            #         return False, p1_leaders, p1_actions, p2_leaders, p2_actions
+            if len(diff_roles) > 1:
                 return False, p1_leaders, p1_actions, p2_leaders, p2_actions
 
     return True, p1_leaders, p1_actions, p2_leaders, p2_actions
@@ -278,18 +281,21 @@ class LUnmergedChoice(LType):
         ]
         self.ensure_consistent_choice(role_fst_actions)
         assert (
-            self.can_apply_two_roles_rule(role_fst_actions)
-            or self.can_apply_merge_rule(role_fst_actions)
+            # self.can_apply_two_roles_rule(role_fst_actions)
+            # or self.can_apply_merge_rule(role_fst_actions)
             # or self.can_apply_directed_choice_projection(role_fst_actions)
             # or self.can_apply_partial_rules(role_fst_actions)
-            or self.can_apply_partition_projection()
+            self.can_apply_partition_projection()
         ), (
             "Cannot apply projection rules. Global type must satisfy one of the following:\n"
-            " - At most one role can have a different behaviour across all branches\n "
-            " - All roles have the same behaviour across branches, except possibly two, "
+            " (1) - At most one role can have a different behaviour across all branches\n "
+            " (2) - All roles have the same behaviour across branches, except possibly two, "
             "which always interact with each other first\n"
-            " - The choice must be directed: A single role must decide which branch to follow"
-            " - and all the other roles must either iteract"
+            " (3) - Can partition branches into two subsets such that the overall behaviour of\n "
+            " all roles except at most one is the same, and both partitions can be projected\n "
+            " independently using (1), (2) and (3)."
+            # " - The choice must be directed: A single role must decide which branch to follow\n"
+            # " - and all the other roles must either iteract"
         )
 
     def can_apply_two_roles_rule(
@@ -309,9 +315,7 @@ class LUnmergedChoice(LType):
         r1, r2 = tuple(to_consider)
         r1_ppts = self.action_participants(all_fst_actions[r1])
         r2_ppts = self.action_participants(all_fst_actions[r2])
-        if len(r1_ppts) != 1 or next(iter(r1_ppts)) != r2:
-            return False
-        return len(r2_ppts) == 1 and next(iter(r2_ppts)) == r1
+        return r1_ppts == {r2} and r2_ppts == {r1}
         # for role in to_consider:
         #     fst_actions = all_fst_actions[role]
         #     if role not in candidates:
@@ -346,9 +350,10 @@ class LUnmergedChoice(LType):
             for role, fst_actions in all_fst_actions.items()
             if self.same_behaviour_role(role, role_fst_actions, fst_actions)
         }
-        if len(same_behaviour_roles) == len(all_fst_actions):
-            return True
-        return len(same_behaviour_roles) == len(all_fst_actions) - 1
+        return len(same_behaviour_roles) >= len(all_fst_actions) - 1
+        # if len(same_behaviour_roles) == len(all_fst_actions):
+        #     return True
+        # return len(same_behaviour_roles) == len(all_fst_actions) - 1
 
     # def can_apply_partial_rules(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
     #     all_role_fst_actions = {
@@ -882,6 +887,9 @@ class LUnmergedChoice(LType):
     def max_rec_depth(self, curr_rec_depth: int) -> int:
         return max(branch.max_rec_depth(curr_rec_depth) for branch in self.branches)
 
+    def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        raise Violation("Cannot generate code from an Unmerged Mixed Choice")
+
     def __str__(self) -> str:
         return self.to_string("")
 
@@ -894,18 +902,18 @@ class LUnmergedChoice(LType):
         return self.hash()
 
 
-class LChoice(LType):
+class LMChoice(LType):
     def __init__(self, branches: List[LType]) -> None:
         self.branches = branches
         self.hash_value = 0
 
     def next_states(self) -> Dict[LAction, Set[LType]]:
         next_states = [id_choice.next_states() for id_choice in self.branches]
-        return LChoice.aggregate_states(next_states)
+        return LMChoice.aggregate_states(next_states)
 
     def next_states_rec(self, tvars: Set[str]) -> Dict[LAction, Set[LType]]:
         next_states = [branch.next_states_rec(tvars) for branch in self.branches]
-        return LChoice.aggregate_states(next_states)
+        return LMChoice.aggregate_states(next_states)
 
     @staticmethod
     def aggregate_states(all_states: List[Dict[LAction, Set[LType]]]):
@@ -1000,6 +1008,26 @@ class LChoice(LType):
     def max_rec_depth(self, curr_rec_depth: int) -> int:
         return max(branch.max_rec_depth(curr_rec_depth) for branch in self.branches)
 
+    def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        # Codegen is a giant select on sending and receiving the appropriate labels
+
+        # 1) Group branches by role in first action
+        grouped_branches = self._group_branches()
+        select_cases: List[str] = []
+        for other_role, branches in grouped_branches.items():
+            send_branches, recv_branches = branches
+            for send_branch in send_branches:
+                select_cases.append(
+                    LMChoice._gen_send_case(role, indent, env, other_role, send_branch)
+                )
+            if len(recv_branches) >= 1:
+                select_cases.append(
+                    LMChoice._gen_recv_case(
+                        role, indent, env, other_role, recv_branches
+                    )
+                )
+        return CodeGen.gen_select(indent, select_cases)
+
     def __str__(self) -> str:
         return self.to_string("")
 
@@ -1011,78 +1039,214 @@ class LChoice(LType):
     def __hash__(self):
         return self.hash()
 
-    # def check_nc_choice(role_fst_actions: List[Dict[str, Set[LAction]]]):
-    #     all_fst_actions: Dict[str, Set[LAction]] = {
-    #         role: {
-    #             action
-    #             for branch_fst_actions in role_fst_actions
-    #             for action in branch_fst_actions[role]
-    #         }
-    #         for role in role_fst_actions[0]
-    #     }
-    # other_roles = {"processing": "routing", "routing": "processing"}
-    # common_actions = {
-    #     r1: {
-    #         action
-    #         for action in all_fst_actions[r1]
-    #         if action.dual() in all_fst_actions[other_roles[r1]]
-    #     }
-    #     for r1 in other_roles
-    # }
-    # # Check actions which are not common to both roles
-    # for role in other_roles:
-    #     for action in all_fst_actions[role]:
-    #         if action not in common_actions[role]:
-    #             for other_action in all_fst_actions[other_roles[role]]:
-    #                 # if other_action.get_participant() != role:
-    #                 found_branch = False
-    #                 for branch_fst_actions in role_fst_actions:
-    #                     if (
-    #                         action in branch_fst_actions[role]
-    #                         and other_action in branch_fst_actions[other_roles[role]]
-    #                     ):
-    #                         found_branch = True
-    #                         break
-    #                 if not found_branch:
-    #                     return False
-    # # Check common actions
-    # for r, common_fst_actions in common_actions.items():
-    #     for action in common_fst_actions:
-    #         found_branch = False
-    #         for branch_fst_actions in role_fst_actions:
-    #             r1_fst_actions = branch_fst_actions[r]
-    #             r2_fst_actions = branch_fst_actions[other_roles[r]]
-    #             if (
-    #                 action in r1_fst_actions
-    #                 and action.dual() in r2_fst_actions
-    #                 and len(r1_fst_actions) == 1
-    #                 and len(r2_fst_actions) == 1
-    #             ):
-    #                 found_branch = True
-    #                 break
-    #         if not found_branch:
-    #             return False
-    #     break
-    # for action in all_fst_actions["processing"]:
-    #     for action2 in all_fst_actions["routing"]:
-    #         found_branch = False
-    #         if (
-    #             action.get_participant() == "routing"
-    #             and action2.get_participant() == "processing"
-    #             and action.dual() != action2
-    #         ):
-    #             continue
-    #         for branch_fst_actions in role_fst_actions:
-    #             r1_fst_actions = branch_fst_actions["processing"]
-    #             r2_fst_actions = branch_fst_actions["routing"]
-    #             if action in r1_fst_actions and action2 in r2_fst_actions:
-    #                 if action.dual() != action2 or (
-    #                     action.dual() == action2
-    #                     and len(r1_fst_actions) == 1
-    #                     and len(r2_fst_actions) == 1
-    #                 ):
-    #                     found_branch = True
-    #                     break
-    #         if not found_branch:
-    #             return False
-    # return True
+    def _group_branches(
+        self
+    ) -> Dict[ROLE, Tuple[List[LMessagePass], List[LMessagePass]]]:
+        grouped_branches: Dict[ROLE, Tuple[List[LMessagePass], List[LMessagePass]]] = {}
+        for branch in self.branches:
+            msg_pass: LMessagePass = cast(LMessagePass, branch)
+            role = msg_pass.get_participant()
+            is_send = msg_pass.is_send()
+            role_send_branches, role_recv_branches = grouped_branches.setdefault(
+                role, ([], [])
+            )
+            if is_send:
+                role_send_branches.append(msg_pass)
+            else:
+                role_recv_branches.append(msg_pass)
+        return grouped_branches
+
+    @staticmethod
+    def _gen_send_case(
+        role: str, indent: str, env: CodeGen, recv: str, send_branch: LMessagePass
+    ) -> str:
+        """
+        a) Send branches:
+        #  - Call callback to generate payloads for message exchange
+        #  - Send payloads
+        #  - Gen continuation
+        """
+        payload_names, payload_types = send_branch.msg_payloads()
+        label = send_branch.msg_label()
+
+        label_enum = env.add_msg_label(label)
+        env.add_role_import(role, PKG_MESSAGES)
+        env.add_label_channel(role, recv)
+
+        send_label_chan = env.get_channel(role, recv, env.msg_label_type())
+
+        case_stmt = CodeGen.gen_case_stmt(
+            CodeGen.channel_send(send_label_chan, label_enum)
+        )
+        case_stmt = CodeGen.indent_line(indent, case_stmt)
+
+        new_indent = CodeGen.incr_indent(indent)
+
+        send_cb = env.add_send_callback(role, recv, label, payload_names)
+        cb_call = CodeGen.method_call(ENV, send_cb, [])
+        var_names, payload_assign = env.var_assignment(role, payload_names, cb_call)
+
+        channel_sends: List[Tuple[str, str]] = []
+        for i, payload_type in enumerate(payload_types):
+            env.add_channel(role, recv, payload_type)
+            payload_chan = env.get_channel(role, recv, payload_type)
+            channel_sends.append((payload_chan, var_names[i]))
+
+        send_msg_lines = CodeGen.gen_channel_sends(channel_sends)
+        impl_lines = [payload_assign, *send_msg_lines]
+        send_impl = CodeGen.join_lines(new_indent, impl_lines)
+        cont_impl = send_branch.get_continuation().gen_code(role, new_indent, env)
+        return "\n".join([case_stmt, send_impl, cont_impl])
+
+    @staticmethod
+    def _gen_recv_case(
+        role: str,
+        indent: str,
+        env: CodeGen,
+        sender: str,
+        recv_branches: List[LMessagePass],
+    ) -> str:
+        """
+        ```
+            case <role>_label := <-roleChan.Label_From_<role>:
+                switch <role>_label {...}
+        ```
+        -> Save label from interaction
+        -> Switch on label value
+        -> Receive payloads for that specific label
+        -> Call callback to process received payloads
+        -> Gen continuation
+        """
+        env.add_role_import(role, PKG_MESSAGES)
+        env.add_label_channel(role, sender)
+        label_chan = env.get_channel(role, sender, env.msg_label_type())
+
+        label_var = CodeGen.recv_label_var(sender)
+        recv_label = CodeGen.channel_recv(label_chan)
+        [label_var], label_assign = env.var_assignment(role, [label_var], recv_label)
+        recv_case = CodeGen.gen_case_stmt(label_assign)
+        recv_case = CodeGen.indent_line(indent, recv_case)
+
+        new_indent = CodeGen.incr_indent(indent)
+
+        switch_case_stmts: List[str] = []
+        for recv_branch in recv_branches:
+            switch_case_stmts.append(
+                LMChoice._gen_recv_switch_case(
+                    role, new_indent, env, sender, recv_branch
+                )
+            )
+        switch_case_stmts.append(CodeGen.switch_default_case(new_indent))
+        switch_stmt = CodeGen.gen_switch(new_indent, label_var, switch_case_stmts)
+        return "\n".join([recv_case, switch_stmt])
+
+    @staticmethod
+    def _gen_recv_switch_case(
+        role: str, indent: str, env: CodeGen, sender: str, recv_branch: LMessagePass
+    ) -> str:
+        """Gen switch case for specific label"""
+        label = recv_branch.msg_label()
+        label_enum = env.add_msg_label(label)
+        case_stmt = CodeGen.gen_case_stmt(label_enum)
+        case_stmt = CodeGen.indent_line(indent, case_stmt)
+
+        new_indent = CodeGen.incr_indent(indent)
+
+        payload_names, payload_types = recv_branch.msg_payloads()
+        chan_fields = []
+        for payload_type in payload_types:
+            env.add_channel(role, sender, payload_type)
+            payload_chan = env.get_channel(role, sender, payload_type)
+            chan_fields.append(payload_chan)
+
+        recv_payload_vars, recv_payload_stmts = env.recv_payloads(
+            role, payload_names, chan_fields
+        )
+
+        recv_cb = env.add_recv_callback(
+            role, sender, label, list(zip(payload_names, payload_types))
+        )
+
+        recv_cb_call = CodeGen.method_call(ENV, recv_cb, recv_payload_vars)
+        recv_payload_stmts.append(recv_cb_call)
+        impl_lines = CodeGen.join_lines(new_indent, recv_payload_stmts)
+
+        cont_impl = recv_branch.get_continuation().gen_code(role, new_indent, env)
+        return "\n".join([case_stmt, impl_lines, cont_impl])
+
+
+# def check_nc_choice(role_fst_actions: List[Dict[str, Set[LAction]]]):
+#     all_fst_actions: Dict[str, Set[LAction]] = {
+#         role: {
+#             action
+#             for branch_fst_actions in role_fst_actions
+#             for action in branch_fst_actions[role]
+#         }
+#         for role in role_fst_actions[0]
+#     }
+# other_roles = {"processing": "routing", "routing": "processing"}
+# common_actions = {
+#     r1: {
+#         action
+#         for action in all_fst_actions[r1]
+#         if action.dual() in all_fst_actions[other_roles[r1]]
+#     }
+#     for r1 in other_roles
+# }
+# # Check actions which are not common to both roles
+# for role in other_roles:
+#     for action in all_fst_actions[role]:
+#         if action not in common_actions[role]:
+#             for other_action in all_fst_actions[other_roles[role]]:
+#                 # if other_action.get_participant() != role:
+#                 found_branch = False
+#                 for branch_fst_actions in role_fst_actions:
+#                     if (
+#                         action in branch_fst_actions[role]
+#                         and other_action in branch_fst_actions[other_roles[role]]
+#                     ):
+#                         found_branch = True
+#                         break
+#                 if not found_branch:
+#                     return False
+# # Check common actions
+# for r, common_fst_actions in common_actions.items():
+#     for action in common_fst_actions:
+#         found_branch = False
+#         for branch_fst_actions in role_fst_actions:
+#             r1_fst_actions = branch_fst_actions[r]
+#             r2_fst_actions = branch_fst_actions[other_roles[r]]
+#             if (
+#                 action in r1_fst_actions
+#                 and action.dual() in r2_fst_actions
+#                 and len(r1_fst_actions) == 1
+#                 and len(r2_fst_actions) == 1
+#             ):
+#                 found_branch = True
+#                 break
+#         if not found_branch:
+#             return False
+#     break
+# for action in all_fst_actions["processing"]:
+#     for action2 in all_fst_actions["routing"]:
+#         found_branch = False
+#         if (
+#             action.get_participant() == "routing"
+#             and action2.get_participant() == "processing"
+#             and action.dual() != action2
+#         ):
+#             continue
+#         for branch_fst_actions in role_fst_actions:
+#             r1_fst_actions = branch_fst_actions["processing"]
+#             r2_fst_actions = branch_fst_actions["routing"]
+#             if action in r1_fst_actions and action2 in r2_fst_actions:
+#                 if action.dual() != action2 or (
+#                     action.dual() == action2
+#                     and len(r1_fst_actions) == 1
+#                     and len(r2_fst_actions) == 1
+#                 ):
+#                     found_branch = True
+#                     break
+#         if not found_branch:
+#             return False
+# return True

@@ -8,7 +8,7 @@ from ltypes.laction import LAction
 
 # from ltypes.lchoice import merge_next_states, LUnmergedChoice, LChoice
 from ltypes.lend import LEnd
-from ltypes.lmchoice import LChoice
+from ltypes.lmchoice import LMChoice
 from ltypes.lmessage_pass import LMessagePass
 from ltypes.lrec_var import LRecVar
 from ltypes.lrecursion import LRecursion
@@ -140,7 +140,7 @@ class DFA:
         if len(branches) == 1:
             curr = branches[0]
         elif len(branches) > 1:
-            curr = LChoice(branches)
+            curr = LMChoice(branches)
 
         if self.is_recursive(state, state, set()):
             # if self.is_recursive1(state):

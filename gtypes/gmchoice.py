@@ -46,6 +46,14 @@ class GChoice(GType):
         return f"{indent}choice {{\n{f'{new_line}{indent}}} or {{{new_line}'.join(ltypes)}\n{indent}}}\n"
 
     def normalise(self) -> GType:
+        norm_branches = [gtype.normalise() for gtype in self.branches]
+        flattened_branches: List[GType] = []
+        for gtype in norm_branches:
+            # Flatten nested mixed choices
+            if isinstance(gtype, GChoice):
+                flattened_branches.extend(gtype.branches)
+            else:
+                flattened_branches.append(gtype)
         self.branches = [gtype.normalise() for gtype in self.branches]
         return self
 

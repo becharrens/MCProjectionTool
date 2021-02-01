@@ -1,6 +1,7 @@
 from typing import Set, Tuple, Dict, Any, Optional, List
 
 import ltypes
+from codegen.codegen import CodeGen
 from gtypes import HASH_SIZE
 from ltypes.laction import LAction
 from ltypes.lend import LEnd
@@ -100,6 +101,10 @@ class LRecVar(LType):
 
     def max_rec_depth(self, curr_rec_depth: int) -> int:
         return curr_rec_depth
+
+    def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        impl = CodeGen.continue_stmt(self.tvar)
+        return CodeGen.indent_line(indent, impl)
 
     def __str__(self) -> str:
         return self.to_string("")

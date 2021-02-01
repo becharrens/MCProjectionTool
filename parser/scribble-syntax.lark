@@ -1,0 +1,45 @@
+start: decl+
+
+decl: "global" "protocol" CNAME "(" role_decl ")" "{" (interaction)? "}"
+
+role_decl: "role" CNAME ("," "role" CNAME)*
+
+interaction: message_transfer
+    | recursion
+    | mchoice
+    | tvar
+
+//payload_type: WORD
+//    | map_type
+//    | slice_type
+//    | pointer_type
+
+//map_type: MAP "[" payload_type "]" payloadtype
+//slice_type: "[" "]" payload_type
+//pointer_type: "*" payload_type
+
+payload: CNAME (":" WORD)?
+payload_decl: "(" payload ("," payload)* ")"
+labelled_message: WORD (payload_decl)?
+message_transfer:  labelled_message FROM WORD TO WORD ";" (interaction)?
+recursion: REC CNAME "{" interaction "}"
+mchoice: MCHOICE "{" (interaction)? "}" (OR "{" (interaction)? "}")*
+tvar: "continue" CNAME ";"
+
+
+OR: "or"
+REC: "rec"
+MCHOICE: "mchoice"
+FROM: "from"
+TO: "TO"
+MAP: "map"
+COMMENT: "/*" /[^*]*/ "*/"
+LINE_COMMENT: "//" /[^\n]*/
+
+%import common.CNAME
+%import common.WORD
+%import common.WS
+%ignore WS
+%ignore COMMENT
+%ignore LINE_COMMENT
+

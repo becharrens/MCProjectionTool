@@ -56,6 +56,7 @@ class TreeToGType(Transformer):
     def message_transfer(self, args):
         sender, recv, payload, cont = args
         label, payload_fields = payload
+        payload_fields = payload_fields or []
         action = GAction([sender, recv], label, payload_fields)
         return GMessagePass(action, cont)
 

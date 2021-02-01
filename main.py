@@ -1,6 +1,7 @@
 from collections import OrderedDict, deque
 from typing import Set, Dict
 
+from codegen.codegen import INDENT, CodeGen
 from dfa.dfa import DFA
 from ltypes.laction import LAction
 from ltypes.ltype import LType
@@ -77,13 +78,16 @@ def main():
                     # Compute hashes for recursive constructs:
                     # - First compute a preliminary hash where all tvars return same
                     #   constant hash
+                    # - Then, propagate the hash max recursion depth - 1 times to
+                    #   ensure that the hashes for recursive variables with the same structure
+                    #   have the same hash
                     max_rec_depth = ltype.max_rec_depth(0)
                     ltype.hash_rec(True)
                     for i in range(max_rec_depth - 1):
                         ltype.hash_rec(False)
 
-                    # - Recompute the hash of the recursions using their preliminary
-                    #   hashes of each recursive constuct as the hash for each tvar
+                    # Force the caching of the hashes, using the updated hash values for the
+                    # recursive variables
                     ltype.hash()
                     pass
                     # print(str(ltype), "\n\n")
@@ -115,12 +119,18 @@ def main():
                     # Checking projection for one ltype will check all projections types
                     ltype.check_valid_projection()
                     break
+                codegen = CodeGen(protocol.roles, protocol.protocol, "GoMChoice")
                 print("Normalised projections")
                 for role, ltype in projections.items():
+                    if role in {"processing", "routing"}:
+                        print(f"{role}@{protocol.protocol}:\n")
+                        continue
                     dfa = DFA(ltype)
                     new_ltype = dfa.translate()
                     print(f"{role}@{protocol.protocol}:\n")
                     print(str(new_ltype), "\n\n")
+
+                    print(new_ltype.gen_code(role, INDENT, codegen))
                 print("\n\n=============================>\n")
             except Exception as e:
                 name = "@".join([x for x in [role, proto_name] if x is not None])

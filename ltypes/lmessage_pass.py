@@ -1,6 +1,7 @@
 from typing import Set, Tuple, Dict, Optional, Any, List
 
 import ltypes
+from codegen.codegen import CodeGen
 from ltypes.laction import LAction
 from ltypes.ltype import LType
 
@@ -103,6 +104,26 @@ class LMessagePass(LType):
 
     def max_rec_depth(self, curr_rec_depth: int) -> int:
         return self.cont.max_rec_depth(curr_rec_depth)
+
+    def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        cont_impl = self.cont.gen_code(role, indent, env)
+        action_impl = self.action.gen_code(role, indent, env)
+        return "\n".join([action_impl, cont_impl])
+
+    def get_participant(self) -> str:
+        return self.action.get_participant()
+
+    def msg_payloads(self) -> Tuple[List[str], List[str]]:
+        return self.action.get_payloads()
+
+    def msg_label(self) -> str:
+        return self.action.get_label()
+
+    def is_send(self) -> bool:
+        return self.action.is_send()
+
+    def get_continuation(self) -> LType:
+        return self.cont
 
     def __str__(self) -> str:
         return self.to_string("")

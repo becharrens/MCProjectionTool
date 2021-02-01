@@ -1,0 +1,9 @@
+package callbacks
+
+{{ imports }}
+
+type {{ interface_name }} interface {
+    {%- for callback_sig in callback_sigs %}
+    {{ callback_sig }}
+    {%- endfor %}
+}

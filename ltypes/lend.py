@@ -1,5 +1,6 @@
 from typing import Set, Dict, Tuple, Any, Optional, List
 
+from codegen.codegen import CodeGen, ENV
 from ltypes.laction import LAction
 from ltypes.ltype import LType
 
@@ -71,6 +72,11 @@ class LEnd(LType):
 
     def max_rec_depth(self, curr_rec_depth: int) -> int:
         return curr_rec_depth
+
+    def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        done_cb = env.add_done_callback(role)
+        return_stmt = CodeGen.return_stmt(CodeGen.method_call(ENV, done_cb, []))
+        return CodeGen.indent_line(indent, return_stmt)
 
     def __str__(self) -> str:
         return self.to_string("")

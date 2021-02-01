@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Set, Dict, Tuple, Any, Optional, List
 
+from codegen.codegen import CodeGen
 from ltypes.laction import LAction
 
 
@@ -92,6 +93,6 @@ class LType(ABC):
     def max_rec_depth(self, curr_rec_depth: int) -> int:
         pass
 
-    # @abstractmethod
-    # def first_actions(self, tvars: Set[str]) -> None:
-    #     pass
+    @abstractmethod
+    def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        pass
