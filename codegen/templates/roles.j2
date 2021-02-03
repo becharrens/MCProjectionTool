@@ -2,8 +2,6 @@ package roles
 
 {{ imports }}
 
-func {{ role_function }}(wg *sync.WaitGroup, roleChannels {{ role_chan }}, env {{ role_env }}) {{ role_result }} {
-    defer wg.Done()
-
-    {{ role_impl }}
+func {{ role_function }}(roleChannels {{ role_chan_type }}, env {{ role_env }}) {{ role_result }} {
+{{ role_impl }}
 }

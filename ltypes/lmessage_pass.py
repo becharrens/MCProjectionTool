@@ -2,6 +2,7 @@ from typing import Set, Tuple, Dict, Optional, Any, List
 
 import ltypes
 from codegen.codegen import CodeGen
+from codegen.namegen import NameGen
 from ltypes.laction import LAction
 from ltypes.ltype import LType
 
@@ -106,8 +107,8 @@ class LMessagePass(LType):
         return self.cont.max_rec_depth(curr_rec_depth)
 
     def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
-        cont_impl = self.cont.gen_code(role, indent, env)
         action_impl = self.action.gen_code(role, indent, env)
+        cont_impl = self.cont.gen_code(role, indent, env)
         return "\n".join([action_impl, cont_impl])
 
     def get_participant(self) -> str:
@@ -124,6 +125,9 @@ class LMessagePass(LType):
 
     def get_continuation(self) -> LType:
         return self.cont
+
+    def ensure_unique_tvars(self, tvar_mapping: Dict[str, str], namegen: NameGen):
+        self.cont.ensure_unique_tvars(tvar_mapping, namegen)
 
     def __str__(self) -> str:
         return self.to_string("")

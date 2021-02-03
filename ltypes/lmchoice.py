@@ -4,6 +4,7 @@ from typing import Set, List, Dict, Optional, Tuple, Iterable, Any, cast, Frozen
 
 import ltypes
 from codegen.codegen import CodeGen, ROLE, ENV, PKG_MESSAGES
+from codegen.namegen import NameGen
 from errors.errors import Violation
 
 from ltypes.laction import LAction
@@ -136,6 +137,11 @@ def proj_condition(
     branches: Dict[str, List[LType]],
     actions: Dict[str, Set[LAction]],
 ) -> bool:
+    """
+    actions: all actions for each role in the partition
+    branches: local type for each branch in partition
+    leaders: set of roles which have different behaviours across two or mo
+    """
     num_leaders = len(leaders)
     if num_leaders < 2:
         return True
@@ -890,6 +896,10 @@ class LUnmergedChoice(LType):
     def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
         raise Violation("Cannot generate code from an Unmerged Mixed Choice")
 
+    def ensure_unique_tvars(self, tvar_mapping: Dict[str, str], namegen: NameGen):
+        for branch in self.branches:
+            branch.ensure_unique_tvars(tvar_mapping, namegen)
+
     def __str__(self) -> str:
         return self.to_string("")
 
@@ -1028,16 +1038,9 @@ class LMChoice(LType):
                 )
         return CodeGen.gen_select(indent, select_cases)
 
-    def __str__(self) -> str:
-        return self.to_string("")
-
-    def __eq__(self, other):
-        if not isinstance(other, LUnmergedChoice):
-            return False
-        return self.hash() == other.hash()
-
-    def __hash__(self):
-        return self.hash()
+    def ensure_unique_tvars(self, tvar_mapping: Dict[str, str], namegen: NameGen):
+        for branch in self.branches:
+            branch.ensure_unique_tvars(tvar_mapping, namegen)
 
     def _group_branches(
         self
@@ -1082,9 +1085,15 @@ class LMChoice(LType):
 
         new_indent = CodeGen.incr_indent(indent)
 
-        send_cb = env.add_send_callback(role, recv, label, payload_names)
+        send_cb = env.add_send_callback(role, recv, label, payload_types)
         cb_call = CodeGen.method_call(ENV, send_cb, [])
-        var_names, payload_assign = env.var_assignment(role, payload_names, cb_call)
+
+        if len(payload_names) > 0:
+            var_names, cb_call_stmt = env.role_var_assignment(
+                role, payload_names, cb_call
+            )
+        else:
+            var_names, cb_call_stmt = [], cb_call
 
         channel_sends: List[Tuple[str, str]] = []
         for i, payload_type in enumerate(payload_types):
@@ -1093,7 +1102,7 @@ class LMChoice(LType):
             channel_sends.append((payload_chan, var_names[i]))
 
         send_msg_lines = CodeGen.gen_channel_sends(channel_sends)
-        impl_lines = [payload_assign, *send_msg_lines]
+        impl_lines = [cb_call_stmt, *send_msg_lines]
         send_impl = CodeGen.join_lines(new_indent, impl_lines)
         cont_impl = send_branch.get_continuation().gen_code(role, new_indent, env)
         return "\n".join([case_stmt, send_impl, cont_impl])
@@ -1123,7 +1132,9 @@ class LMChoice(LType):
 
         label_var = CodeGen.recv_label_var(sender)
         recv_label = CodeGen.channel_recv(label_chan)
-        [label_var], label_assign = env.var_assignment(role, [label_var], recv_label)
+        [label_var], label_assign = env.role_var_assignment(
+            role, [label_var], recv_label
+        )
         recv_case = CodeGen.gen_case_stmt(label_assign)
         recv_case = CodeGen.indent_line(indent, recv_case)
 
@@ -1173,6 +1184,17 @@ class LMChoice(LType):
 
         cont_impl = recv_branch.get_continuation().gen_code(role, new_indent, env)
         return "\n".join([case_stmt, impl_lines, cont_impl])
+
+    def __str__(self) -> str:
+        return self.to_string("")
+
+    def __eq__(self, other):
+        if not isinstance(other, LUnmergedChoice):
+            return False
+        return self.hash() == other.hash()
+
+    def __hash__(self):
+        return self.hash()
 
 
 # def check_nc_choice(role_fst_actions: List[Dict[str, Set[LAction]]]):

@@ -69,11 +69,15 @@ class LAction:
         if self.action_type.is_send():
             # Gen Send
             send_cb = env.add_send_callback(
-                role, self.participant, self.label, payload_names
+                role, self.participant, self.label, payload_types
             )
             cb_call = CodeGen.method_call(ENV, send_cb, [])
-            var_names, payload_assign = env.var_assignment(role, payload_names, cb_call)
-
+            if len(payload_names) > 0:
+                var_names, cb_call_stmt = env.role_var_assignment(
+                    role, payload_names, cb_call
+                )
+            else:
+                var_names, cb_call_stmt = [], cb_call
             label_enum = env.add_msg_label(self.label)
             env.add_role_import(role, PKG_MESSAGES)
             env.add_label_channel(role, self.participant)
@@ -87,7 +91,7 @@ class LAction:
                 channel_sends.append((payload_chan, var_names[i]))
 
             send_msg_lines = CodeGen.gen_channel_sends(channel_sends)
-            impl_lines = [payload_assign, *send_msg_lines]
+            impl_lines = [cb_call_stmt, *send_msg_lines]
             return CodeGen.join_lines(indent, impl_lines)
         else:
             # Gen recv

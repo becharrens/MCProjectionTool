@@ -1,6 +1,7 @@
 from typing import Set, Dict, Tuple, Any, Optional, List
 
 from codegen.codegen import CodeGen, ENV
+from codegen.namegen import NameGen
 from ltypes.laction import LAction
 from ltypes.ltype import LType
 
@@ -77,6 +78,9 @@ class LEnd(LType):
         done_cb = env.add_done_callback(role)
         return_stmt = CodeGen.return_stmt(CodeGen.method_call(ENV, done_cb, []))
         return CodeGen.indent_line(indent, return_stmt)
+
+    def ensure_unique_tvars(self, tvar_mapping: Dict[str, str], namegen: NameGen):
+        pass
 
     def __str__(self) -> str:
         return self.to_string("")

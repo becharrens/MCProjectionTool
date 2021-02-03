@@ -2,6 +2,7 @@ from typing import Set, Tuple, Dict, Type, cast, Optional, Any, List
 
 import ltypes
 from codegen.codegen import CodeGen
+from codegen.namegen import NameGen
 from gtypes.gtype import GType
 from ltypes.laction import LAction
 from ltypes.ltype import LType
@@ -123,6 +124,17 @@ class LRecursion(LType):
 
         # Assumes recursive variables are globally unique
         return CodeGen.labelled_for_loop(indent, self.tvar, impl)
+
+    def ensure_unique_tvars(self, tvar_mapping: Dict[str, str], namegen: NameGen):
+        old_tvar = self.tvar
+        old_name = tvar_mapping.setdefault(old_tvar, "")
+
+        self.tvar = namegen.unique_name(self.tvar)
+        tvar_mapping[old_tvar] = self.tvar
+
+        self.ltype.ensure_unique_tvars(tvar_mapping, namegen)
+
+        tvar_mapping[old_tvar] = old_name
 
     def __str__(self) -> str:
         return self.to_string("")

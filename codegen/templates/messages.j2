@@ -2,14 +2,15 @@ package messages
 
 type {{ label_type }} int
 
-{% if msg_enums|length > 0 %}
+{%- if msg_enums|length > 0 %}
+
 const (
     {%- for msg_enum in msg_enums %}
     {%- if loop.index == 1 %}
     {{ msg_enum }} {{ label_type }} = iota
     {%- else %}
     {{ msg_enum }}
-    {% endif %}
+    {%- endif %}
     {%- endfor %}
 )
 {% endif %}

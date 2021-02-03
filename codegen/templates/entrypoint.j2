@@ -1,0 +1,52 @@
+package {{ protocol_pkg }}
+
+{{ imports }}
+
+type {{ init_interface_name }} interface {
+    {%- for init_method_sig in init_method_sigs %}
+    {{ init_method_sig }}
+    {%- endfor %}
+}
+
+type {{ result_interface_name }} interface {
+    {%- for result_method_sig in result_method_sigs %}
+    {{ result_method_sig }}
+    {%- endfor %}
+}
+
+{% for start_func in role_start_funcs %}
+func {{ start_func.func_name }}(resultEnv {{ result_interface_name }}, wg *sync.WaitGroup, roleChannels {{ start_func.role_chan_type }}, env {{ start_func.role_env_type }}) {
+    defer wg.Done()
+    result := {{ start_func.role_func }}(roleChannels, env)
+    resultEnv.{{ start_func.result_func }}(result)
+}
+{% endfor %}
+
+func {{ entrypoint_function }}(initEnv {{ init_interface_name }}, resultEnv {{ result_interface_name }}) {
+    {% for make_chan in make_chan_stmts -%}
+    {{ make_chan }}
+    {% endfor %}
+
+    {%- for chan_struct_assing in chan_struct_assigns %}
+    {{ chan_struct_assing.var_name }} := {{ chan_struct_assing.struct_name }}{
+        {%- for struct_field, chan_var in chan_struct_assing.field_decls %}
+        {{ struct_field }}: {{ chan_var }},
+        {%- endfor %}
+    }
+    {%- endfor %}
+
+    var wg sync.WaitGroup
+
+    wg.Add({{ role_func_calls|length }})
+
+    {%- for env_assign in role_env_assigns %}
+    {{ env_assign.env_var }} := initEnv.{{ env_assign.method }}()
+    {%- endfor %}
+
+
+    {%- for func_call in role_func_calls %}
+    go {{ func_call.start_role_func }}(resultEnv, &wg, {{ func_call.chan_var }}, {{ func_call.env_var }})
+    {%- endfor %}
+
+    wg.Wait()
+}

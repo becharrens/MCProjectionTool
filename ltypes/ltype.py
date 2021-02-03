@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Set, Dict, Tuple, Any, Optional, List
 
 from codegen.codegen import CodeGen
+from codegen.namegen import NameGen
 from ltypes.laction import LAction
 
 
@@ -95,4 +96,8 @@ class LType(ABC):
 
     @abstractmethod
     def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
+        pass
+
+    @abstractmethod
+    def ensure_unique_tvars(self, tvar_mapping: Dict[str, str], namegen: NameGen):
         pass

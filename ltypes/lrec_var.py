@@ -2,6 +2,7 @@ from typing import Set, Tuple, Dict, Any, Optional, List
 
 import ltypes
 from codegen.codegen import CodeGen
+from codegen.namegen import NameGen
 from gtypes import HASH_SIZE
 from ltypes.laction import LAction
 from ltypes.lend import LEnd
@@ -105,6 +106,9 @@ class LRecVar(LType):
     def gen_code(self, role: str, indent: str, env: CodeGen) -> str:
         impl = CodeGen.continue_stmt(self.tvar)
         return CodeGen.indent_line(indent, impl)
+
+    def ensure_unique_tvars(self, tvar_mapping: Dict[str, str], namegen: NameGen):
+        self.tvar = tvar_mapping[self.tvar]
 
     def __str__(self) -> str:
         return self.to_string("")

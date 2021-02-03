@@ -2,10 +2,11 @@ package channels
 
 {{ imports }}
 
-{% for struct in channel_structs %}
+{%- for struct in channel_structs %}
+
 type {{ struct[0] }} struct {
     {%- for chan_field_decl in struct[1] %}
     {{ chan_field_decl }}
     {%- endfor %}
 }
-{% endfor %}
+{%- endfor %}

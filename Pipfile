@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 lark-parser = "*"
 numpy = "*"
+"jinja2" = "*"
 
 [dev-packages]
 

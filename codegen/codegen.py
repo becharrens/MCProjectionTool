@@ -1,6 +1,11 @@
-from typing import Dict, Tuple, List, FrozenSet, Set, Iterable, cast
+from pathlib import Path
+from typing import Dict, Tuple, List, FrozenSet, Set, Iterable, cast, Any
+
+import jinja2
 
 from codegen.namegen import NameGen
+
+LABEL = "label"
 
 ROLE = str
 CHAN_NAME = str
@@ -41,10 +46,47 @@ INDENT = "   "
 NEWLINE = "\n"
 QUOTE = '"'
 
+# TEMPLATE ENV VARIABLES
+T_IMPORTS = "imports"
+T_ROLE_FUNCTION = "role_function"
+T_ROLE_IMPL = "role_impl"
+T_ROLE_CHAN_TYPE = "role_chan_type"
+T_ROLE_ENV = "role_env"
+T_ROLE_RESULT = "role_result"
+T_CALLBACKS_INTERFACE = "interface_name"
+T_CALLBACK_SIGS = "callback_sigs"
+T_MSG_LABEL_TYPE = "label_type"
+T_MSG_ENUM_VALUES = "msg_enums"
+T_CHANNEL_STRUCTS = "channel_structs"
+T_RESULT_STRUCTS = "result_structs"
+T_ROLE_CHAN_FIELDS = "field_decls"
+T_ROLE_CHAN_STRUCT = "struct_name"
+T_ROLE_CHAN_VAR = "var_name"
+T_RESULT_FUNC = "result_func"
+T_ROLE_IMPL_FUNC = "role_func"
+T_ROLE_ENV_TYPE = "role_env_type"
+T_ROLE_START_FUNC = "func_name"
+T_ENV_VAR = "env_var"
+T_INIT_ROLE_ENV_METHOD = "method"
+
+ROLE_IMPL_TEMPLATE = "roles.j2"
+CALLBACKS_TEMPLATE = "callbacks.j2"
+MESSAGES_TEMPLATE = "messages.j2"
+CHANNELS_TEMPLATE = "channels.j2"
+RESULTS_TEMPLATE = "results.j2"
+ENTRYPOINT_TEMPLATE = "entrypoint.j2"
+
+ENTRYPOINT_FILE = "entrypoint.go"
+MSGS_IMPL_FILE = "messages.go"
+RESULTS_FILE = "results.go"
+CHANNELS_FILE = "channels.go"
+
 # Code generation constants
 DONE_CB = "Done"
 ENV = "env"
 ROLE_CHAN = "roleChannels"
+RESULT = "result"
+
 
 # UTIL
 def uncapitalize(string: str) -> str:
@@ -54,10 +96,10 @@ def uncapitalize(string: str) -> str:
 
 
 class ImportsEnv:
-    def __init__(self, root_pkg: PKG, protocol: PKG) -> None:
+    def __init__(self, root_pkg: PKG, protocol_pkg: PKG) -> None:
         super().__init__()
         self.imports: Set[PKG] = set()
-        self.protocol_pkg = protocol
+        self.protocol_pkg = protocol_pkg
         self.root_pkg = root_pkg
         self.import_sync = False
 
@@ -82,7 +124,8 @@ class CodeGen:
     def __init__(self, roles: List[ROLE], protocol: str, root_pkg: str) -> None:
         super().__init__()
 
-        self.roles: List[ROLE] = CodeGen.unique_roles(roles)
+        self.role_mapping: Dict[ROLE, ROLE] = CodeGen.unique_roles(roles)
+        self.roles = list(self.role_mapping.values())
 
         self.protocol = protocol
         self.protocol_pkg = protocol.lower()
@@ -102,28 +145,26 @@ class CodeGen:
         }
         for imports_env in self.role_imports.values():
             # Add common imports for all role implementations
-            imports_env.add_sync_import()
             imports_env.import_pkg(PKG_CALLBACKS)
             imports_env.import_pkg(PKG_CHANNELS)
+            imports_env.import_pkg(PKG_RESULTS)
 
         self.role_var_names: Dict[ROLE, NameGen] = {
             role: NameGen() for role in self.roles
         }
-        self.role_impl: Dict[ROLE, str] = {}
 
         # Callbacks
         self.callback_imports: Dict[ROLE, ImportsEnv] = {
-            role: ImportsEnv(root_pkg, protocol) for role in self.roles
+            role: ImportsEnv(self.root_pkg, self.protocol_pkg) for role in self.roles
         }
+        self.role_interfaces = CodeGen.role_env_interfaces(self.roles)
         self.callbacks: Dict[ROLE, Dict[str, Tuple[str, str]]] = {
             role: {} for role in self.roles
         }
         self.callback_names: Dict[ROLE, NameGen] = {}
 
         # Result Structs
-        self.result_struct_names = NameGen()
-        self.result_structs: Dict[ROLE, str] = {}
-        self.create_result_structs()
+        self.result_structs: Dict[ROLE, str] = CodeGen.create_result_structs(self.roles)
 
         # Protocol Imports
         self.protocol_imports = ImportsEnv(self.root_pkg, self.protocol_pkg)
@@ -158,11 +199,12 @@ class CodeGen:
 
     def add_label_channel(self, role: ROLE, other_role: ROLE) -> None:
         msg_type = self.msg_label_type()
+        self.channel_imports.import_pkg(PKG_MESSAGES)
         chan_key = (other_role, msg_type)
         if chan_key in self.channels[role]:
             return
-        role_chan = self._chan_name_for_role(role, other_role, "label")
-        # recv_chan = self._chan_name_for_role(other_role, role, "label")
+        role_chan = self._chan_name_for_role(role, other_role, LABEL)
+        # recv_chan = self._chan_name_for_role(other_role, role, LABEL)
         self.channels[role][chan_key] = role_chan
 
     def add_msg_label(self, label: MSG_LABEL) -> MSG_ENUM:
@@ -181,7 +223,7 @@ class CodeGen:
     ) -> CHAN_NAME:
         return self.channels[role][(other_role, msg_type)]
 
-    def gen_channels(self) -> Tuple[str, List[Tuple[ROLE, List[str]]]]:
+    def gen_channels(self) -> List[Tuple[str, List[str]]]:
         role_channels: Dict[ROLE, List[str]] = {}
         for role, chan_fields in self.channels.items():
             chan_field_decls: List[str] = []
@@ -189,13 +231,11 @@ class CodeGen:
                 _, msg_type = chan_key
                 chan_field_decls.append(CodeGen.chan_field_decl(chan_name, msg_type))
             role_channels[role] = chan_field_decls
-        return (
-            self.channel_imports.gen_imports(),
-            [
-                (self.channel_structs[role], chan_fields)
-                for role, chan_fields in role_channels.items()
-            ],
-        )
+
+        return [
+            (self.channel_structs[role], chan_fields)
+            for role, chan_fields in role_channels.items()
+        ]
 
     @staticmethod
     def _add_role_chan(
@@ -223,8 +263,6 @@ class CodeGen:
             return
 
         ret_type_str = CodeGen.return_type(ret_type)
-        if len(ret_type) > 1:
-            ret_type_str = f"({ret_type_str})"
         params_str = CodeGen.var_signature(params)
 
         role_callbacks[cb_name] = (params_str, ret_type_str)
@@ -253,31 +291,19 @@ class CodeGen:
         self._add_callback(role, DONE_CB, [], [return_type])
         return DONE_CB
 
-    def gen_callbacks(self) -> Dict[ROLE, Tuple[str, str, List[str]]]:
-        callback_interfaces = {}
-        interface_namegen = NameGen()
-        for role in self.roles:
-            role_interface = interface_namegen.unique_name(
-                CodeGen.role_env_interface(role)
-            )
-            interface_methods = [
-                CodeGen.function_sig(cb_name, cb_params, cb_return_type)
-                for cb_name, (cb_params, cb_return_type) in self.callbacks.items()
-            ]
-            imports_str = self.callback_imports[role].gen_imports()
-            callback_interfaces[role] = (imports_str, role_interface, interface_methods)
-        return callback_interfaces
+    def gen_role_callbacks(self, role: str) -> List[str]:
+        interface_methods = [
+            CodeGen.function_sig(cb_name, cb_params, cb_return_type)
+            for cb_name, (cb_params, cb_return_type) in self.callbacks[role].items()
+        ]
+        return interface_methods
 
-    # RESULT STRUCTS
-    def _add_result_struct(self, role: ROLE):
-        struct_name = CodeGen.result_struct(role)
-        struct_name = self.result_struct_names.unique_name(struct_name)
-
-        self.result_structs[role] = struct_name
-
-    def create_result_structs(self):
-        for role in self.roles:
-            self._add_result_struct(role)
+    @staticmethod
+    def create_result_structs(roles: List[ROLE]) -> Dict[ROLE, str]:
+        namegen = NameGen()
+        return {
+            role: namegen.unique_name(CodeGen.result_struct(role)) for role in roles
+        }
 
     def get_result_struct(self, role: ROLE):
         return self.result_structs[role]
@@ -286,23 +312,350 @@ class CodeGen:
         return list(self.result_structs.values())
 
     # ROLE IMPL
-    def var_assignment(
+    def role_var_assignment(
         self, role: str, variables: List[str], rhs: str
     ) -> Tuple[List[str], str]:
-        namegen = self.role_var_names[role]
-        unique_vars = [namegen.unique_name(var) for var in variables]
-        var_assign = f"{', '.join(unique_vars)} := {rhs}"
-        return unique_vars, var_assign
+        return CodeGen.var_assignment(self.role_var_names[role], variables, rhs)
 
     def add_role_import(self, role: ROLE, pkg: PKG):
         self.role_imports[role].import_pkg(pkg)
 
-    # NAMES AND CODEGEN FUNCTIONS
-    # @staticmethod
-    # def role_channel(role: ROLE, msg_type: MSG_TYPE, is_send: bool) -> CHAN_NAME:
-    #     if is_send:
-    #         return f"{msg_type.capitalize()}_To_{role.capitalize()}"
-    #     return f"{msg_type.capitalize()}_From_{role.capitalize()}"
+    # GEN IMPL
+    def gen_impl(self, ltypes: Dict[ROLE, Any]) -> Dict[str, str]:
+        # Values should be LType, but import would cause cyclic dependency
+        impl_files = {}
+        for role, ltype in ltypes.items():
+            role = self.role_mapping[role]
+            ltype.ensure_unique_tvars({}, NameGen())
+
+            role_impl = ltype.gen_code(role, INDENT, self)
+
+            role_file_name = CodeGen.role_go_file_name(role)
+
+            # ROLE IMPLEMENTATIONS
+            role_impl_file_path = str(
+                Path(self.root_pkg, self.protocol_pkg, PKG_ROLES, role_file_name)
+            )
+            role_impl_file = self.render_impl_template(role, role_impl)
+            impl_files[role_impl_file_path] = role_impl_file
+
+            # CALLBACKS INTERFACES
+            role_callbacks_file_path = str(
+                Path(self.root_pkg, self.protocol_pkg, PKG_CALLBACKS, role_file_name)
+            )
+            role_callbacks_impl = self.render_callbacks_template(role)
+            impl_files[role_callbacks_file_path] = role_callbacks_impl
+
+        # MESSAGES
+        msgs_file_path = str(
+            Path(self.root_pkg, self.protocol_pkg, PKG_MESSAGES, MSGS_IMPL_FILE)
+        )
+        msgs_impl = self.render_msgs_template()
+        impl_files[msgs_file_path] = msgs_impl
+
+        # CHANNELS
+        channels_file_path = str(
+            Path(self.root_pkg, self.protocol_pkg, PKG_CHANNELS, CHANNELS_FILE)
+        )
+        channels_impl = self.render_channels_template()
+        impl_files[channels_file_path] = channels_impl
+
+        # RESULTS
+        results_file_path = str(
+            Path(self.root_pkg, self.protocol_pkg, PKG_RESULTS, RESULTS_FILE)
+        )
+        results_impl = self.render_results_template()
+        impl_files[results_file_path] = results_impl
+
+        # ENTRYPOINT
+        entrypoint_file_path = str(
+            Path(self.root_pkg, self.protocol_pkg, ENTRYPOINT_FILE)
+        )
+        entrypoint_impl = self.gen_entrypoint()
+        impl_files[entrypoint_file_path] = entrypoint_impl
+        return impl_files
+
+    def render_impl_template(self, role: ROLE, role_impl: str) -> str:
+        env = {
+            T_IMPORTS: self.role_imports[role].gen_imports(),
+            T_ROLE_FUNCTION: CodeGen.role_impl_function_name(role),
+            T_ROLE_IMPL: role_impl,
+            T_ROLE_CHAN_TYPE: CodeGen.pkg_access(
+                PKG_CHANNELS, self.channel_structs[role]
+            ),
+            T_ROLE_ENV: CodeGen.pkg_access(PKG_CALLBACKS, self.role_interfaces[role]),
+            T_ROLE_RESULT: CodeGen.pkg_access(PKG_RESULTS, self.result_structs[role]),
+        }
+        return CodeGen.render_template(ROLE_IMPL_TEMPLATE, env)
+
+    def render_callbacks_template(self, role: ROLE) -> str:
+        role_callbacks = self.gen_role_callbacks(role)
+        env = {
+            T_IMPORTS: self.callback_imports[role].gen_imports(),
+            T_CALLBACKS_INTERFACE: self.role_interfaces[role],
+            T_CALLBACK_SIGS: role_callbacks,
+        }
+        return CodeGen.render_template(CALLBACKS_TEMPLATE, env)
+
+    def render_msgs_template(self):
+        env = {
+            T_MSG_LABEL_TYPE: self.label_type,
+            T_MSG_ENUM_VALUES: list(self.label_values.values()),
+        }
+        return CodeGen.render_template(MESSAGES_TEMPLATE, env)
+
+    def render_channels_template(self):
+        env = {
+            T_IMPORTS: self.channel_imports.gen_imports(),
+            T_CHANNEL_STRUCTS: self.gen_channels(),
+        }
+        return CodeGen.render_template(CHANNELS_TEMPLATE, env)
+
+    def render_results_template(self):
+        env = {T_RESULT_STRUCTS: list(self.result_structs.values())}
+        return CodeGen.render_template(RESULTS_TEMPLATE, env)
+
+    def gen_result_interface(self) -> List[str]:
+        namegen = NameGen()
+        interface_methods = [
+            namegen.unique_name(CodeGen.role_result_method(role)) for role in self.roles
+        ]
+
+        result_params = [
+            CodeGen.var_signature([(RESULT, self.result_structs[role])])
+            for role in self.roles
+        ]
+        return [
+            CodeGen.function_sig(method_name, result_param, "")
+            for method_name, result_param in zip(interface_methods, result_params)
+        ]
+
+    def gen_init_interface(self) -> List[str]:
+        namegen = NameGen()
+        interface_methods = [
+            namegen.unique_name(CodeGen.role_result_method(role)) for role in self.roles
+        ]
+        return_types = [
+            CodeGen.pkg_access(PKG_CALLBACKS, self.role_interfaces[role])
+            for role in self.roles
+        ]
+        return [
+            CodeGen.function_sig(method_name, "", return_type)
+            for method_name, return_type in zip(interface_methods, return_types)
+        ]
+
+    def gen_entrypoint(self):
+        # GEN IMPORTS
+        imports = self.gen_entrypoint_imports()
+
+        entrypoint_namegen = NameGen()
+
+        # GEN INIT ENV INTERFACE
+        init_interface_name = entrypoint_namegen.unique_name(
+            CodeGen.init_interface_name(self.protocol)
+        )
+        init_interface_methods, init_method_decls = self.gen_init_protocol_interface()
+
+        # GEN RESULT ENV INTERFACE
+        result_interface_name = entrypoint_namegen.unique_name(
+            CodeGen.result_interface_name(self.protocol)
+        )
+        result_interface_methods, result_method_decls = (
+            self.gen_protocol_result_interface()
+        )
+
+        # GEN ROLE START FUNCTIONS
+        start_func_names, role_start_funcs = self.gen_role_start_functions(
+            entrypoint_namegen, result_interface_methods
+        )
+
+        # GEN CHANNELS
+        all_channels: Dict[Tuple[FrozenSet[ROLE, ROLE], str], str] = {}
+        create_chan_stmts = []
+        namegen = NameGen()
+        for role, chan_fields in self.channels.items():
+            for other_role, msg_type in chan_fields.keys():
+                chan_key = (frozenset((role, other_role)), msg_type)
+                if chan_key not in all_channels:
+                    msg_type_in_var = self.normalise_label_type_name(msg_type)
+                    chan_var = CodeGen.channel_var(role, other_role, msg_type_in_var)
+                    make_chan = CodeGen.make_expr(CodeGen.chan_type(msg_type))
+                    [chan_var], chan_assign = self.var_assignment(
+                        namegen, [chan_var], make_chan
+                    )
+                    all_channels[chan_key] = chan_var
+                    create_chan_stmts.append(chan_assign)
+
+        # GEN CHANNEL STRUCTS
+        chan_struct_vars: Dict[ROLE, VAR] = {}
+        channel_struct_assigns: List[Dict[str, Any]] = []
+        for role, chan_fields in self.channels.items():
+            role_chan_var = CodeGen.role_channel_var(role)
+            chan_struct_vars[role] = role_chan_var
+            chan_field_decls: List[Tuple[str, str]] = []
+            for (other_role, msg_type), chan_field_name in chan_fields.items():
+                chan_var_key = (frozenset((role, other_role)), msg_type)
+                chan_field_decls.append((chan_field_name, all_channels[chan_var_key]))
+            role_chan_assign = {
+                T_ROLE_CHAN_VAR: role_chan_var,
+                T_ROLE_CHAN_STRUCT: CodeGen.pkg_access(
+                    PKG_CHANNELS, self.channel_structs[role]
+                ),
+                T_ROLE_CHAN_FIELDS: chan_field_decls,
+            }
+            channel_struct_assigns.append(role_chan_assign)
+
+        # GEN ROLE ENV ASSIGNMENTS
+        env_vars: Dict[ROLE, VAR] = {}
+        role_env_assigns: List[Dict[str, Any]] = []
+        for role in self.roles:
+            role_env_var = namegen.unique_name(CodeGen.role_env_variable(role))
+            env_vars[role] = role_env_var
+            env_assign = {
+                T_ENV_VAR: role_env_var,
+                T_INIT_ROLE_ENV_METHOD: init_interface_methods[role],
+            }
+            role_env_assigns.append(env_assign)
+
+        # GEN ROLE GOROUTINES
+        role_func_calls: List[Dict[str, Any]] = []
+        for role in self.roles:
+            func_call_env = {
+                "start_role_func": start_func_names[role],
+                "chan_var": chan_struct_vars[role],
+                "env_var": env_vars[role],
+            }
+            role_func_calls.append(func_call_env)
+
+        entrypoint_function = entrypoint_namegen.unique_name(
+            CodeGen.entrypoint_function_name(self.protocol)
+        )
+
+        return self.render_entrypoint_template(
+            channel_struct_assigns,
+            create_chan_stmts,
+            entrypoint_function,
+            imports,
+            init_interface_name,
+            init_method_decls,
+            result_interface_name,
+            result_method_decls,
+            role_env_assigns,
+            role_func_calls,
+            role_start_funcs,
+        )
+
+    def render_entrypoint_template(
+        self,
+        channel_struct_assigns: List[Dict[str, Any]],
+        create_chan_stmts: List[str],
+        entrypoint_function: str,
+        imports: ImportsEnv,
+        init_interface_name: str,
+        init_method_decls: List[str],
+        result_interface_name: str,
+        result_method_decls: List[str],
+        role_env_assigns: List[Dict[str, Any]],
+        role_func_calls: List[Dict[str, Any]],
+        role_start_funcs: List[Dict[str, Any]],
+    ):
+        entrypoint_env = {
+            "protocol_pkg": self.protocol_pkg,
+            T_IMPORTS: imports.gen_imports(),
+            "init_interface_name": init_interface_name,
+            "init_method_sigs": init_method_decls,
+            "result_interface_name": result_interface_name,
+            "result_method_sigs": result_method_decls,
+            "role_start_funcs": role_start_funcs,
+            "entrypoint_function": entrypoint_function,
+            "make_chan_stmts": create_chan_stmts,
+            "chan_struct_assigns": channel_struct_assigns,
+            "role_env_assigns": role_env_assigns,
+            "role_func_calls": role_func_calls,
+        }
+        return CodeGen.render_template(ENTRYPOINT_TEMPLATE, entrypoint_env)
+
+    def gen_role_start_functions(
+        self, endpoint_namegen: NameGen, result_interface_methods: Dict[ROLE, str]
+    ) -> Tuple[Dict[ROLE, str], List[Dict[str, Any]]]:
+        start_funcs = {}
+        role_start_funcs: List[Dict[str, Any]] = []
+        for role in self.roles:
+            start_func_name = endpoint_namegen.unique_name(
+                CodeGen.start_role_function(role)
+            )
+            start_funcs[role] = start_func_name
+            role_chan_type = CodeGen.pkg_access(
+                PKG_CHANNELS, self.channel_structs[role]
+            )
+            role_env_type = CodeGen.pkg_access(
+                PKG_CALLBACKS, self.role_interfaces[role]
+            )
+            result_func = result_interface_methods[role]
+            role_func_env = {
+                T_ROLE_START_FUNC: start_func_name,
+                T_ROLE_CHAN_TYPE: role_chan_type,
+                T_ROLE_ENV_TYPE: role_env_type,
+                T_ROLE_IMPL_FUNC: CodeGen.pkg_access(
+                    PKG_ROLES, CodeGen.role_impl_function_name(role)
+                ),
+                T_RESULT_FUNC: result_func,
+            }
+            role_start_funcs.append(role_func_env)
+        return start_funcs, role_start_funcs
+
+    def gen_entrypoint_imports(self) -> ImportsEnv:
+        imports = ImportsEnv(self.root_pkg, self.protocol_pkg)
+        imports.add_sync_import()
+        if len(self.roles) > 0:
+            imports.import_pkg(PKG_RESULTS)
+            imports.import_pkg(PKG_ROLES)
+            imports.import_pkg(PKG_CALLBACKS)
+            imports.import_pkg(PKG_CHANNELS)
+        # Add whatever imports are needed for the channels (i.e. import messages or not?)
+        imports.imports |= self.channel_imports.imports
+        return imports
+
+    @staticmethod
+    def role_impl_function_name(role: ROLE) -> str:
+        return role.capitalize()
+
+    def gen_init_protocol_interface(self) -> Tuple[Dict[ROLE, str], List[str]]:
+        namegen = NameGen()
+
+        interface_methods = {}
+        method_decls = []
+
+        for role in self.roles:
+            return_type = CodeGen.pkg_access(PKG_CALLBACKS, self.role_interfaces[role])
+            method_name = namegen.unique_name(CodeGen.new_role_env_method(role))
+            method_decls.append(CodeGen.function_sig(method_name, "", return_type))
+            interface_methods[role] = method_name
+
+        return interface_methods, method_decls
+
+    def gen_protocol_result_interface(self) -> Tuple[Dict[ROLE, str], List[str]]:
+        namegen = NameGen()
+
+        interface_methods = {}
+        method_decls = []
+
+        for role in self.roles:
+            param_type = CodeGen.pkg_access(PKG_RESULTS, self.result_structs[role])
+            method_name = namegen.unique_name(CodeGen.process_role_result_method(role))
+            method_decls.append(
+                CodeGen.function_sig(
+                    method_name, CodeGen.var_signature([(RESULT, param_type)]), ""
+                )
+            )
+            interface_methods[role] = method_name
+
+        return interface_methods, method_decls
+
+    def normalise_label_type_name(self, msg_type: MSG_TYPE) -> MSG_TYPE:
+        if msg_type == self.msg_label_type():
+            return LABEL
+        return msg_type
 
     @staticmethod
     def role_channel(role: ROLE, msg_type: MSG_TYPE) -> CHAN_NAME:
@@ -337,16 +690,30 @@ class CodeGen:
         return f"{role.capitalize()}_Result"
 
     @staticmethod
-    def unique_roles(roles: List[ROLE]) -> List[ROLE]:
+    def unique_roles(roles: List[ROLE]) -> Dict[ROLE, ROLE]:
         namegen = NameGen()
-        return [namegen.unique_name(role.lower()) for role in set(roles)]
+        # Build role mapping by lower-casing all roles. When resolving conflicts, roles
+        # which are already lowercase should keep their name as is.
+        unique_role_names = {}
+        for role in set(roles):
+            if role == role.lower():
+                unique_role_names[role] = namegen.unique_name(role.lower())
+        for role in set(roles):
+            if role not in unique_role_names:
+                unique_role_names[role] = namegen.unique_name(role.lower())
+
+        return unique_role_names
 
     @staticmethod
-    def chan_field_decl(chan_name: CHAN_NAME, msg_type: MSG_TYPE):
-        return f"{chan_name} chan {msg_type}"
+    def chan_field_decl(chan_name: CHAN_NAME, msg_type: MSG_TYPE) -> str:
+        return f"{chan_name} {CodeGen.chan_type(msg_type)}"
 
     @staticmethod
-    def chan_struct_name(role: ROLE):
+    def chan_type(msg_type: MSG_TYPE) -> str:
+        return f"chan {msg_type}"
+
+    @staticmethod
+    def chan_struct_name(role: ROLE) -> str:
         return f"{role.capitalize()}_Chan"
 
     @staticmethod
@@ -421,7 +788,7 @@ class CodeGen:
         for payload_name, chan_field in zip(payloads, chan_fields):
             # Assumes payload names are not capitalised
             chan_recv = CodeGen.channel_recv(chan_field)
-            [var], recv_stmt = self.var_assignment(role, [payload_name], chan_recv)
+            [var], recv_stmt = self.role_var_assignment(role, [payload_name], chan_recv)
             payload_vars.append(var)
             recv_stmts.append(recv_stmt)
         return payload_vars, recv_stmts
@@ -473,3 +840,80 @@ class CodeGen:
         default_impl = 'panic("Invalid choice was made")'
         default_impl = CodeGen.indent_line(new_indent, default_impl)
         return "\n".join([default_case, default_impl])
+
+    @staticmethod
+    def role_go_file_name(role: str) -> str:
+        return f"{role}.go"
+
+    @staticmethod
+    def role_env_interfaces(roles: List[ROLE]) -> Dict[ROLE, str]:
+        namegen = NameGen()
+        return {
+            role: namegen.unique_name(CodeGen.role_env_interface(role))
+            for role in roles
+        }
+
+    @staticmethod
+    def render_template(template: str, env: Dict[str, Any]) -> str:
+        templates_dir_path = (Path(__file__).parent / "templates").absolute()
+        template_loader = jinja2.FileSystemLoader(templates_dir_path)
+        template_env = jinja2.Environment(loader=template_loader)
+        template = template_env.get_template(template)
+        result = template.render(**env)
+        return result
+
+    @staticmethod
+    def role_result_method(role: str) -> str:
+        return f"Result_From_{role.capitalize()}"
+
+    @staticmethod
+    def role_init_state_method(role: str) -> str:
+        return f"New_{role.capitalize()}_Env"
+
+    @staticmethod
+    def var_assignment(
+        namegen: NameGen, variables: List[VAR], rhs: str
+    ) -> Tuple[List[str], str]:
+        unique_vars = [namegen.unique_name(var) for var in variables]
+        var_assign = f"{', '.join(unique_vars)} := {rhs}"
+        return unique_vars, var_assign
+
+    @staticmethod
+    def channel_var(role: ROLE, other_role: ROLE, msg_type: MSG_TYPE) -> VAR:
+        return f"{role.lower()}_{other_role.lower()}_{msg_type}_chan"
+
+    @staticmethod
+    def make_expr(expr: str) -> str:
+        return f"make({expr})"
+
+    @staticmethod
+    def role_channel_var(role: ROLE) -> VAR:
+        return f"{role.lower()}_chan"
+
+    @staticmethod
+    def role_env_variable(role: ROLE) -> VAR:
+        return f"{role.lower()}_env"
+
+    @staticmethod
+    def new_role_env_method(role: ROLE) -> str:
+        return f"New_{role.capitalize()}_Env"
+
+    @staticmethod
+    def process_role_result_method(role: ROLE) -> str:
+        return f"{role.capitalize()}_Result"
+
+    @staticmethod
+    def init_interface_name(protocol: str) -> str:
+        return f"Init_{protocol.capitalize()}_Env"
+
+    @staticmethod
+    def result_interface_name(protocol: str) -> str:
+        return f"{protocol.capitalize()}_Result_Env"
+
+    @staticmethod
+    def start_role_function(role: ROLE) -> str:
+        return f"Start_{role.capitalize()}"
+
+    @staticmethod
+    def entrypoint_function_name(protocol: str) -> str:
+        return f"{protocol.capitalize()}"
