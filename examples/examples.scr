@@ -1,78 +1,78 @@
 global protocol LabelledMessages(role a, role b) {
-    a->b:M(x: int, int); end
+     M(x: int, int) from a to b;
 }
 
 
 global protocol Test1(role a, role b, role c) {
     rec X {
-        choice {
-            a->b:U; continue X
+        mchoice {
+             U from a to b; continue X;
         } or {
-            a->c:U; continue X
+             U from a to c; continue X;
         }
     }
 }
 
 global protocol Controller(role input1, role input2, role processing, role routing, role output1, role output2) {
     rec X1 {
-        choice {
-            input1 -> processing: packet;
+        mchoice {
+            packet from input1 to processing;
             rec X2 {
-                processing -> routing: packet;
-                choice {
-                    input1 -> processing:packet;
-                    choice {
-                        routing -> output1: packet;
-                        continue X2
+                packet from processing to routing;
+                mchoice {
+                     packet from input1 to processing;
+                    mchoice {
+                        packet from routing to output1;
+                        continue X2;
                     } or {
-                        routing -> output2: packet;
-                        continue X2
+                        packet from routing to output2;
+                        continue X2;
                     }
                 } or {
-                    input2 -> processing: packet;
-                    choice {
-                        routing -> output1: packet;
-                        continue X2
+                    packet from input2 to processing;
+                    mchoice {
+                        packet from routing to output1;
+                        continue X2;
                     } or {
-                        routing -> output2: packet;
-                        continue X2
+                        packet from routing to output2;
+                        continue X2;
                     }
                 } or {
-                    routing -> output1: packet;
-                    continue X1
+                    packet from routing to output1;
+                    continue X1;
                 } or {
-                    routing -> output2: packet;
-                    continue X1
+                    packet from routing to output2;
+                    continue X1;
                 }
             }
         } or {
-            input2 -> processing: packet;
+            packet from input2 to processing;
             rec X2 {
-                processing -> routing: packet;
-                choice {
-                    input1 -> processing:packet;
-                    choice {
-                        routing -> output1: packet;
-                        continue X2
+                packet from processing to routing;
+                mchoice {
+                     packet from input1 to processing;
+                    mchoice {
+                        packet from routing to output1;
+                        continue X2;
                     } or {
-                        routing -> output2: packet;
-                        continue X2
+                        packet from routing to output2;
+                        continue X2;
                     }
                 } or {
-                    input2 -> processing: packet;
-                    choice {
-                        routing -> output1: packet;
-                        continue X2
+                    packet from input2 to processing;
+                    mchoice {
+                        packet from routing to output1;
+                        continue X2;
                     } or {
-                        routing -> output2: packet;
-                        continue X2
+                        packet from routing to output2;
+                        continue X2;
                     }
                 } or {
-                    routing -> output1: packet;
-                    continue X1
+                    packet from routing to output1;
+                    continue X1;
                 } or {
-                    routing -> output2: packet;
-                    continue X1
+                    packet from routing to output2;
+                    continue X1;
                 }
             }
         }
@@ -85,46 +85,46 @@ global protocol Invalid(role a, role b, role c) {
     - 'c' can confuse 1st and 2nd branches
     - Also trace equivalence in 1st/2nd branches
     */
-    choice {
-        a->b:U; a->c:U; end
+    mchoice {
+        U from a to b; U from a to c;
     } or {
-        a->c:U; c->a:U; b->a:U; end
+        U from a to c; U from c to a; U from b to a;
     } or {
-        c->a:U; c->b:U; end
+        U from c to a; U from c to b;
     }
 }
 
 
 global protocol LeaderElection(role a, role b, role c, role env) {
-    choice {
-        a->b:leader; a->c:leader; a->env:elect; end
+    mchoice {
+        leader from a to b; leader from a to c; elect from a to env;
     } or {
-        b->a:leader; b->c:leader; b->env:elect; end
+        leader from b to a; leader from b to c; elect from b to env;
     } or {
-        c->a:leader; c->b:leader; c->env:elect; end
+        leader from c to a; leader from c to b; elect from c to env;
     }
 }
 
 global protocol Recursion(role a, role b) {
     rec X {
-        choice {
-            a->b:U; end
+        mchoice {
+            U from a to b;
         } or {
-            continue X
+            continue X;
         }
     }
 }
 
 global protocol DoubleRecursion(role a, role b, role c, role d, role e) {
     rec t1 {
-        a->b:nat;
+        nat from a to b;
         rec t2 {
-            choice {
-                c->e:nat; continue t1
+            mchoice {
+                nat from c to e; continue t1;
             } or {
-                d->e:nat; continue t1
+                nat from d to e; continue t1;
             } or {
-                e->d:nat; continue t2
+                nat from e to d; continue t2;
             }
         }
     }
@@ -132,70 +132,68 @@ global protocol DoubleRecursion(role a, role b, role c, role d, role e) {
 
 global protocol Rec(role a, role b) {
     rec X {
-        a->b:U; continue X
+        U from a to b; continue X;
     }
 }
 
 global protocol InvalidInternalChoice(role a, role b, role c, role d) {
-    choice {
-        a->b:U;
-        a->c:U;
-        a->d:U;
-        c->d:U;
-        end
+    mchoice {
+        U from a to b;
+        U from a to c;
+        U from a to d;
+        U from c to d;
     } or {
-        b->a:U;
-        a->c:U;
-        a->d:U;
-        d->c:U;
-        end
+        U from b to a;
+        U from a to c;
+        U from a to d;
+        U from d to c;
     }
 }
 
 global protocol KVStoreSeq(role a1, role a2, role b) {
     rec X {
-        choice {
-            a1 -> b:lock;
+        mchoice {
+            lock from a1 to b;
             rec Y1 {
-                choice {
+                mchoice {
                     rec Z1 {
-                        choice {
-                            a1->b:get;
-                            a1->b:val;
-                            continue Z1
+                        mchoice {
+                            get from a1 to b;
+                            val from a1 to b;
+                            continue Z1;
                         } or {
-                            a1->b:barrier;
-                            continue Y1
+                            barrier from a1 to b;
+                            continue Y1;
                         }
                     }
                 } or {
-                    a1->b:set;
-                    continue Y1
+                    set from a1 to b;
+                    continue Y1;
                 } or {
-                    a1->b:unlock;
-                    continue X
+                    unlock from a1 to b;
+                    continue X;
                 }
             }
         } or {
-            a2 -> b:lock;
+            lock from a2 to b;
             rec Y2 {
-                choice {
+                mchoice {
                     rec Z2 {
-                        choice {
-                            a2->b:get;
-                            a2->b:val;
-                            continue Z2
+                        mchoice {
+                            get from a2 to b;
+                            val from a2 to b;
+                            continue Z2;
                         } or {
-                            a2->b:barrier;
-                            continue Y2
+                            barrier from a2 to b;
+                            continue Y2;
                         }
                     }
                 } or {
-                    a2->b:set;
-                    continue Y2
+                    set from a2 to b;
+                    continue Y2;
                 } or {
-                    a2->b:unlock;
-                    continue X
+                    unlock from a2 to b;
+                    continue X;
                 }
             }
         }
@@ -203,207 +201,234 @@ global protocol KVStoreSeq(role a1, role a2, role b) {
 }
 
 global protocol Invalid1(role a, role b, role c) {
-    choice {
-        a->b:U; end
+    mchoice {
+        U from a to b;
     } or {
-        a->c:U; end
+        U from a to c;
     }
 }
 
 global protocol Invalid2(role a, role b, role c) {
-    choice {
-        a->b:U; b->c:U; c->a:U; end
+    mchoice {
+        U from a to b; U from b to c; U from c to a;
     } or {
-        b->c:U; c->a:U; a->b:U; end
-    }
-}
-
-global protocol Valid2(role a, role b, role c) {
-    choice {
-        a->b:U;
-        choice {
-            b->c:U; c->a:U; end
-        } or {
-            c->a:U; b->c:U; end
-        }
-    } or {
-        b->c:U;
-        choice {
-            c->a:U; a->b:U; end
-        } or {
-            a->b:U; c->a:U; end
-        }
+        U from b to c; U from c to a; U from a to b;
     }
 }
 
 global protocol Invalid3(role a, role b, role c) {
-    choice {
-        a->b:U; b->c:U; c->a:U; end
+    mchoice {
+        U from a to b;
+        mchoice {
+            U from b to c; U from c to a;
+        } or {
+            U from c to a; U from b to c;
+        }
     } or {
-        b->c:U; c->a:U; a->b:U; end
+        U from b to c;
+        mchoice {
+            U from c to a; U from a to b;
+        } or {
+            U from a to b; U from c to a;
+        }
+    }
+}
+
+global protocol Invalid4(role a, role b, role c) {
+    mchoice {
+        U from a to b; U from b to c; U from c to a;
     } or {
-        c->a:U; a->b:U; b->c:U; end
+        U from b to c; U from c to a; U from a to b;
+    } or {
+        U from c to a; U from a to b; U from b to c;
     }
 }
 
 global protocol Unmergeable(role a, role b, role c, role d, role e, role f, role g, role h) {
-    /* But cannot be handled */
-    choice {
-        e->f:U; g->h:U; a->b:U; a->d:U; a->c:U; end
+    /* Valid, but cannot be handled */
+    mchoice {
+        U from e to f; U from g to h; U from a to b; U from a to d; U from a to c;
     } or {
-        g->h:U; e->f:U; a->b:U; a->c:U; a->d:U; end
+        U from g to h; U from e to f; U from a to b; U from a to c; U from a to d;
     }
 }
 
 /* NEED TO ENSURE THIS IS HANDLED */
 global protocol InvalidHiddenGAction(role a, role b, role c) {
-    choice {
-        a->b:U; a->c:U; end
+    mchoice {
+        U from a to b; U from a to c;
     } or {
-        c->b:U; a->c: U; end
+        U from c to b;  U from a to c;
     }
 }
 
 global protocol RecBuffer(role p, role c, role b) {
     rec t {
-        p->b:U;
-        choice {
-            p->b:U; b->c:U; b->c:U; continue t
+         U from p to b;
+        mchoice {
+             U from p to b;  U from b to c;  U from b to c; continue t;
         } or {
-            b->c:U; p->b:U; b->c:U; continue t
+             U from b to c;  U from p to b;  U from b to c; continue t;
         }
     }
 }
 
 global protocol Buffer(role p, role c, role b) {
-    p->b:U;
-    choice {
-        p->b:U; b->c:U; b->c:U; end
+     U from p to b;
+    mchoice {
+         U from p to b;  U from b to c;  U from b to c;
     } or {
-        b->c:U; p->b:U; b->c:U; end
+         U from b to c;  U from p to b;  U from b to c;
     }
 }
 
 global protocol GSemantics(role p1, role p2, role q1, role q2) {
-    choice {
-        p1->q1:U;
-        choice {
-            p2->q2:U; end
+    mchoice {
+         U from p1 to q1;
+        mchoice {
+             U from p2 to q2;
         } or {
-            q2->p2:U; end
+             U from q2 to p2;
         }
     } or {
-        q1->p1:U;
-        choice {
-            p2->q2:U; end
+         U from q1 to p1;
+        mchoice {
+             U from p2 to q2;
         } or {
-            q2->p2:U; end
+             U from q2 to p2;
         }
     }
 }
 
-/* Valid only if directed choice is enabled */
+/* Valid only if directed mchoice is enabled */
 global protocol Example212(role p, role q, role r) {
-    choice {
-        p->q:L; r->p:M; end
+    mchoice {
+         L from p to q;  M from r to p;
     } or {
-        r->p:M;
-        choice {
-            p->q:L; end
+         M from r to p;
+        mchoice {
+             L from p to q;
         } or {
-            p->q:N; end
+             N from p to q;
         }
     }
 }
 
 global protocol MultipleProducerOneConsumer(role p1, role p2, role cons, role buf) {
-    choice {
-        p1->buf:U;
-        choice {
-            p2->buf:U; buf->cons:U; buf->cons:U; end
+    mchoice {
+         U from p1 to buf;
+        mchoice {
+             U from p2 to buf;  U from buf to cons;  U from buf to cons;
         } or {
-            buf->cons:U; p2->buf:U; buf->cons:U; end
+             U from buf to cons;  U from p2 to buf;  U from buf to cons;
         }
     } or {
-        p2->buf:U;
-        choice {
-            p1->buf:U; buf->cons:U; buf->cons:U; end
+         U from p2 to buf;
+        mchoice {
+             U from p1 to buf;  U from buf to cons;  U from buf to cons;
         } or {
-            buf->cons:U; p1->buf:U; buf->cons:U; end
+             U from buf to cons;  U from p1 to buf;  U from buf to cons;
         }
     }
 }
 
 global protocol Loop1(role a, role b, role c, role d, role e) {
     rec loop {
-        a->b:nat; a->c:nat; d->e:nat; continue loop
+         nat from a to b;  nat from a to c;  nat from d to e; continue loop;
     }
 }
 
 global protocol Loop2(role a, role b, role c, role d, role e) {
     rec loop {
-        choice {
-            a->b:nat; a->c:nat; continue loop
+        mchoice {
+             nat from a to b;  nat from a to c; continue loop;
         } or {
-            d->e:nat; continue loop
+             nat from d to e; continue loop;
         }
     }
 }
 /* Basic two participant rule does not suffice */
 global protocol TwoParticipantRule1(role a,role b, role c, role d, role e){
-    choice {
-        c->d:U; d->e:U;
-        choice {
-            a->b:U; c->a:U; b->d:U; end
+    mchoice {
+         U from c to d;  U from d to e;
+        mchoice {
+             U from a to b;  U from c to a;  U from b to d;
         } or {
-            b->a:U; a->c:U; d->b:U; end
+             U from b to a;  U from a to c;  U from d to b;
         }
     } or {
-        c->d:U; d->e:U;
-        choice {
-            a->b:L; c->a:U; b->d:U; end
+         U from c to d;  U from d to e;
+        mchoice {
+             L from a to b;  U from c to a;  U from b to d;
         } or {
-            b->a:L; a->c:U; d->b:U; end
+             L from b to a;  U from a to c;  U from d to b;
         }
     }
 }
 
 global protocol P1(role a, role b, role c, role d) {
     rec t {
-        a->b:U; c->d:U; continue t
+         U from a to b;  U from c to d; continue t;
     }
 }
 
 global protocol P2(role a, role b, role c, role d, role e) {
     rec t {
-        a->b:U; a->c:U; d->e:U; continue t
+         U from a to b;  U from a to c;  U from d to e; continue t;
     }
 }
 global protocol P3(role a, role b, role c, role d) {
     rec t {
-        choice {
-            a->b:U; continue t
+        mchoice {
+             U from a to b; continue t;
         } or {
-            c->d:U; continue t
+             U from c to d; continue t;
         }
     }
 }
 
 global protocol RecTest1(role X, role Y) {
   rec SEND {
-    choice{
-      X->Y:m;
-      continue SEND
+    mchoice{
+       m from X to Y;
+      continue SEND;
     } or {
-      X->Y:n;
+       n from X to Y;
       rec SEND2 {
-        X->Y:end;
-        choice {
-          continue SEND
+         end from X to Y;
+        mchoice {
+          continue SEND;
         } or {
-          continue SEND2
+          continue SEND2;
         }
       }
     }
   }
+}
+
+global protocol InvalidInconsistentLabel(role a, role b) {
+    mchoice {
+        m1() from a to b;
+    } or {
+        m1(a: int) from a to b;
+    }
+}
+
+global protocol ValidConsistentLabel(role a, role b) {
+    mchoice {
+        m1(a: int) from a to b;
+    } or {
+        m1(a: int) from a to b;
+    }
+}
+
+global protocol ValidInconsistentLabel(role a, role b) {
+    mchoice {
+        m1(a: int) from a to b;
+        m1() from a to b;
+    } or {
+        m2(a: int) from a to b;
+        m1(a: int) from a to b;
+        m1() from a to b;
+    }
 }

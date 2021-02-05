@@ -126,9 +126,19 @@ def main():
         action="store_true",
         help="show verbose output - all global types, projections and generated code",
     )
+    parser.add_argument(
+        "--parser",
+        dest="parser",
+        type=str,
+        default="scribble",
+        choices=["scribble", "mpst"],
+        help="specify which parser to use to parse the protocol specifications. Default is Scribble parser,"
+        "but another similar parser is also available, whose syntax resembles more closely the MPST syntax",
+    )
     args = parser.parse_args()
+    parser.print_help()
     try:
-        protocols = scr_parser.parse_file(args.file)
+        protocols = scr_parser.parse_file(args.file, args.parser)
         for proto_name, protocol in protocols.items():
             role = None
             try:

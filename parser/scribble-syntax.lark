@@ -14,25 +14,25 @@ interaction: message_transfer
 //    | slice_type
 //    | pointer_type
 
-//map_type: MAP "[" payload_type "]" payloadtype
+//map_type: "map" "[" payload_type "]" payloadtype
 //slice_type: "[" "]" payload_type
 //pointer_type: "*" payload_type
 
 payload: CNAME (":" WORD)?
-payload_decl: "(" payload ("," payload)* ")"
-labelled_message: WORD (payload_decl)?
-message_transfer:  labelled_message FROM WORD TO WORD ";" (interaction)?
-recursion: REC CNAME "{" interaction "}"
-mchoice: MCHOICE "{" (interaction)? "}" (OR "{" (interaction)? "}")*
+payload_decl: "(" (payload ("," payload)*)? ")"
+labelled_message: CNAME (payload_decl)?
+message_transfer:  labelled_message "from" CNAME "to" CNAME ";" (interaction)?
+recursion: "rec" CNAME "{" interaction "}"
+mchoice: "mchoice" "{" (interaction)? "}" ("or" "{" (interaction)? "}")*
 tvar: "continue" CNAME ";"
 
 
-OR: "or"
-REC: "rec"
-MCHOICE: "mchoice"
-FROM: "from"
-TO: "TO"
-MAP: "map"
+//OR: "or"
+//REC: "rec"
+//MCHOICE: "mchoice"
+//FROM: "from"
+//TO: "to"
+//MAP: "map"
 COMMENT: "/*" /[^*]*/ "*/"
 LINE_COMMENT: "//" /[^\n]*/
 

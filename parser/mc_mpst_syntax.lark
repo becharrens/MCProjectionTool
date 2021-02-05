@@ -1,6 +1,6 @@
 start: decl+
 
-decl: "global" "protocol" CNAME "(" role_decl ")" "{" interaction* "}"
+decl: "global" "protocol" CNAME "(" role_decl ")" "{" interaction? "}"
 
 role_decl: "role" CNAME ("," "role" CNAME)*
 
