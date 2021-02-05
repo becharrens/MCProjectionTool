@@ -73,4 +73,11 @@ class GAction:
         return str(self).__hash__() % HASH_SIZE
 
     def __str__(self) -> str:
-        return f'{"->".join(self.participants)}:{self.label}'
+        if len(self.payloads) > 0:
+            str_payloads = [f"{pname}:{ptype}" for pname, ptype in self.payloads]
+            payloads_str = f'({", ".join(str_payloads)})'
+        else:
+            payloads_str = ""
+        sender, recv = self.participants
+        return f"{self.label}{payloads_str} from {sender} to {recv}"
+        # return f'{"->".join(self.participants)}:{self.label}'

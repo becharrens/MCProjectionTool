@@ -5,9 +5,9 @@ from typing import Set, List, Dict, Optional, Tuple, Iterable, Any, cast, Frozen
 import ltypes
 from codegen.codegen import CodeGen, ROLE, ENV, PKG_MESSAGES
 from codegen.namegen import NameGen
-from errors.errors import Violation
+from errors.errors import Violation, InconsistentChoiceLabel
 
-from ltypes.laction import LAction
+from ltypes.laction import LAction, ActionType
 from ltypes.lmessage_pass import LMessagePass
 from ltypes.ltype import LType
 from unionfind.unionfind import UnionFind
@@ -132,6 +132,36 @@ def all_actions_in_partition(
     return leaders, all_actions
 
 
+def action_participants(local_actions: Set[LAction]) -> Set[str]:
+    return {action.get_participant() for action in local_actions}
+
+
+def directed_choice_partition(actions: Dict[str, Set[LAction]], leaders: Set[str]):
+    # filtered_leaders = [
+    #     leader for leader in leaders if len(action_participants(actions[leader])) > 1
+    # ]
+    # return len(filtered_leaders) <= 1
+    # Filter out leaders whose behaviour depends only on one role
+    paired_leaders = set()
+    multiple_role_leaders = 0
+    for leader in leaders:
+        participants = action_participants(actions[leader])
+        if len(participants) == 1:
+            (ppt,) = tuple(participants)
+            other_participants = action_participants(actions[ppt])
+            if len(other_participants) == 1:
+                (ppt2,) = tuple(other_participants)
+                if ppt2 == leader:
+                    paired_leaders.union({leader, ppt})
+                    if len(paired_leaders) > 2 or multiple_role_leaders > 0:
+                        return False
+        else:
+            multiple_role_leaders += 1
+            if multiple_role_leaders > 1 or len(paired_leaders) > 0:
+                return False
+    return True
+
+
 def proj_condition(
     leaders: Set[str],
     branches: Dict[str, List[LType]],
@@ -145,6 +175,12 @@ def proj_condition(
     num_leaders = len(leaders)
     if num_leaders < 2:
         return True
+
+    # TODO: POSSIBLY UNSOUND CONDITION
+    # if directed_choice_partition(actions, leaders):
+    #     return True
+    # TODO: POSSIBLY UNSOUND CONDITION
+
     if num_leaders == 2:
         # return behaviour_partition2(actions, branches, leaders)
         if behaviour_partition(actions, branches, leaders):
@@ -319,8 +355,8 @@ class LUnmergedChoice(LType):
             return False
         to_consider = set(all_fst_actions.keys()).difference(same_behaviour_roles)
         r1, r2 = tuple(to_consider)
-        r1_ppts = self.action_participants(all_fst_actions[r1])
-        r2_ppts = self.action_participants(all_fst_actions[r2])
+        r1_ppts = action_participants(all_fst_actions[r1])
+        r2_ppts = action_participants(all_fst_actions[r2])
         return r1_ppts == {r2} and r2_ppts == {r1}
         # for role in to_consider:
         #     fst_actions = all_fst_actions[role]
@@ -532,7 +568,7 @@ class LUnmergedChoice(LType):
         for r in role_subset:
             if r not in same_behaviour_roles and r != role:
                 fst_actions = all_fst_actions[r]
-                ppts = self.action_participants(fst_actions)
+                ppts = action_participants(fst_actions)
                 if len(ppts) != 1 or role not in ppts:
                     return False
         return True
@@ -702,9 +738,6 @@ class LUnmergedChoice(LType):
         partition = Partition(choice_proj, partition_indices, all_fst_actions, leaders)
         return partition.is_valid(dict())
 
-    def action_participants(self, local_actions: Set[LAction]) -> Set[str]:
-        return {action.get_participant() for action in local_actions}
-
     def ensure_consistent_choice(self, role_fst_actions: List[Dict[str, Set[LAction]]]):
         active_roles = set()
         inactive_roles = set()
@@ -802,7 +835,7 @@ class LUnmergedChoice(LType):
         new_indent = indent + "\t"
         str_ltypes = [ltype.to_string(new_indent) for ltype in self.branches]
         new_line = "\n"
-        return f"{indent}choice {{\n{f'{new_line}{indent}}} or {{{new_line}'.join(str_ltypes)}\n{indent}}}\n"
+        return f"{indent}mchoice {{\n{f'{new_line}{indent}}} or {{{new_line}'.join(str_ltypes)}\n{indent}}}\n"
 
     def has_rec_var(self, tvar: str) -> bool:
         for ltype in self.branches:
@@ -875,7 +908,7 @@ class LUnmergedChoice(LType):
         return True
 
     def directed_behaviour_role(self, role_fst_actions):
-        return len(self.action_participants(role_fst_actions)) == 1
+        return len(action_participants(role_fst_actions)) == 1
 
     def calc_next_states_rec(
         self,
@@ -915,7 +948,8 @@ class LUnmergedChoice(LType):
 class LMChoice(LType):
     def __init__(self, branches: List[LType]) -> None:
         self.branches = branches
-        self.hash_value = 0
+        self.hash_value: Optional[int] = None
+        self.ensure_unique_labels()
 
     def next_states(self) -> Dict[LAction, Set[LType]]:
         next_states = [id_choice.next_states() for id_choice in self.branches]
@@ -958,7 +992,7 @@ class LMChoice(LType):
         new_indent = indent + "\t"
         str_ltypes = [ltype.to_string(new_indent) for ltype in self.branches]
         new_line = "\n"
-        return f"{indent}choice {{\n{f'{new_line}{indent}}} or {{{new_line}'.join(str_ltypes)}\n{indent}}}"
+        return f"{indent}mchoice {{\n{f'{new_line}{indent}}} or {{{new_line}'.join(str_ltypes)}\n{indent}}}"
 
     def normalise(self) -> LType:
         self.branches = [branch.normalise() for branch in self.branches]
@@ -1184,6 +1218,21 @@ class LMChoice(LType):
 
         cont_impl = recv_branch.get_continuation().gen_code(role, new_indent, env)
         return "\n".join([case_stmt, impl_lines, cont_impl])
+
+    def ensure_unique_labels(self) -> None:
+        labels: Dict[Tuple[ROLE, bool], Set[str]] = {}
+        for branch in self.branches:
+            branch: LMessagePass = cast(LMessagePass, branch)
+            label = branch.msg_label()
+            is_send = branch.is_send()
+            ppt = branch.get_participant()
+            role_labels = labels.setdefault((ppt, is_send), set())
+            if label in role_labels:
+                raise InconsistentChoiceLabel(
+                    "Duplicate label in different branches of mixed choice - ensure message "
+                    "labels and payloads are used consistently"
+                )
+            role_labels.add(label)
 
     def __str__(self) -> str:
         return self.to_string("")

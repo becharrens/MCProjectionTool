@@ -16,9 +16,13 @@ class ActionType(Enum):
         return self.value == 0
 
     def __str__(self) -> str:
+        # if self.value == 0:
+        #     return "!"
+        # return "?"
+
         if self.value == 0:
-            return "!"
-        return "?"
+            return "to"
+        return "from"
 
 
 class LAction:
@@ -134,4 +138,11 @@ class LAction:
         return self.hash()
 
     def __str__(self) -> str:
-        return f"{self.participant}{self.action_type}{self.label}"
+        if len(self.payloads) > 0:
+            str_payloads = [f"{pname}:{ptype}" for pname, ptype in self.payloads]
+            payloads_str = f'({", ".join(str_payloads)})'
+        else:
+            payloads_str = ""
+
+        return f"{self.label}{payloads_str} {self.action_type} {self.participant}"
+        # return f"{self.participant}{self.action_type}{self.label}{payloads_str}"

@@ -37,7 +37,7 @@ class GRecVar(GType):
         ) % HASH_SIZE
 
     def to_string(self, indent: str) -> str:
-        return f"{indent}continue {self.tvar}"
+        return f"{indent}continue {self.tvar};"
 
     def normalise(self) -> GType:
         return self

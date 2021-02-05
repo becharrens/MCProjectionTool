@@ -18,6 +18,14 @@ class NotTraceEquivalent(Exception):
     pass
 
 
+class InconsistentChoiceLabel(Exception):
+    """When different branches of a mixed choice have the same label
+    for first actions of the same kind (send/receive). This could be due to
+    inconsistent use of message payloads"""
+
+    pass
+
+
 class Violation(Exception):
     """When an unreachable state has been reached"""
 

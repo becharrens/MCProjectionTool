@@ -50,7 +50,7 @@ class LRecVar(LType):
         return self.hash()
 
     def to_string(self, indent: str) -> str:
-        return f"{indent}continue {self.tvar}"
+        return f"{indent}continue {self.tvar};"
 
     def normalise(self) -> LType:
         return self
